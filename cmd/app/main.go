@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ivanglie/iploc/internal"
 )
@@ -35,7 +36,7 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/find", find)
+	http.HandleFunc("/", search)
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
@@ -52,10 +53,8 @@ func main() {
 	}
 }
 
-func find(res http.ResponseWriter, req *http.Request) {
-	log.Println(state)
-
-	var item *internal.Item
+func search(res http.ResponseWriter, req *http.Request) {
+	var ip *internal.IP
 	var err error
 
 	address := req.URL.Query().Get("ip")
@@ -63,14 +62,15 @@ func find(res http.ResponseWriter, req *http.Request) {
 		log.Panic(errors.New(address + " is incorrect IP."))
 	}
 
+	t := time.Now()
 	switch ver := strings.Count(address, ":"); {
 	case ver < 2:
-		item, err = internal.Find(address, state.IPv4Chunks...)
+		ip, err = internal.Search(address, state.IPv4Chunks...)
 	case ver >= 2:
-		item, err = internal.Find(address, state.IPv6Chunks...)
+		ip, err = internal.Search(address, state.IPv6Chunks...)
 	default:
 		log.Panic(errors.New(address + " is incorrect IP."))
 	}
-
-	fmt.Fprintf(res, "Find page\n%s is %v (err: %v)", address, item, err)
+	log.Printf("%s is %v (err: %v, elapsed time: %v)\n", address, ip, err, time.Since(t))
+	fmt.Fprintf(res, "%s is %v (err: %v, elapsed time: %v)", address, ip, err, time.Since(t))
 }
