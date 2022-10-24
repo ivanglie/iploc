@@ -43,7 +43,7 @@ func Search(address string, paths ...string) (ip *IP, err error) {
 		return
 	}
 
-	bi, err := convIP(address)
+	num, err := convIP(address)
 	if err != nil {
 		return
 	}
@@ -55,7 +55,7 @@ func Search(address string, paths ...string) (ip *IP, err error) {
 	defer cancel()
 
 	for _, p := range paths {
-		go search(ctx, p, bi, ipCh, errCh)
+		go search(ctx, p, num, ipCh, errCh)
 	}
 
 	numEOF := 0
@@ -80,7 +80,7 @@ loop:
 }
 
 // search
-func search(ctx context.Context, path string, bi *big.Int, ipCh chan<- *IP, errCh chan<- error) {
+func search(ctx context.Context, path string, num *big.Int, ipCh chan<- *IP, errCh chan<- error) {
 	file, err := openCSV(path)
 	if err != nil {
 		return
@@ -99,7 +99,7 @@ func search(ctx context.Context, path string, bi *big.Int, ipCh chan<- *IP, errC
 			return
 		}
 
-		s, err := binarySearch(rec, bi)
+		s, err := binarySearch(rec, num)
 		if err != nil {
 			errCh <- err
 			return
@@ -137,21 +137,21 @@ func search(ctx context.Context, path string, bi *big.Int, ipCh chan<- *IP, errC
 }
 
 // binarySearch
-func binarySearch(rec [][]string, bi *big.Int) (s [][]string, err error) {
+func binarySearch(rec [][]string, num *big.Int) (s [][]string, err error) {
 	mid := len(rec) / 2
 	first, _ := new(big.Int).SetString(rec[mid][0], 0)
 	last, _ := new(big.Int).SetString(rec[mid][1], 0)
 
 	switch {
 	case mid == 0:
-		err = errors.New("not found error")
+		err = errors.New("not found")
 		return
-	case last.Cmp(bi) == -1 && first.Cmp(bi) == -1:
-		s, err = binarySearch(rec[mid:], bi)
-	case first.Cmp(bi) == 1 && last.Cmp(bi) == 1:
-		s, err = binarySearch(rec[:mid], bi)
-	default: // rec[mid] == bi
-		s = rec[:]
+	case num.Cmp(first)+num.Cmp(last) > 0:
+		s, err = binarySearch(rec[mid:], num)
+	case num.Cmp(first)+num.Cmp(last) < 0:
+		s, err = binarySearch(rec[:mid], num)
+	default: // case bi.Cmp(first)+bi.Cmp(last) == 0:
+		s = rec[mid:]
 	}
 	return
 }
@@ -160,37 +160,31 @@ func binarySearch(rec [][]string, bi *big.Int) (s [][]string, err error) {
 func convIP(address string) (num *big.Int, err error) {
 	ip := net.ParseIP(address)
 	if ip == nil {
-		err = errors.New(address + " is incorrect IP")
+		err = errors.New("'" + address + "' is incorrect IP")
 		return
 	}
 
 	switch ver := strings.Count(address, ":"); {
 	case ver < 2 && ip.To4() != nil:
-		num, err = convIPv4(ip.To4())
+		num, err = func(netIP net.IP) (num *big.Int, err error) {
+			var long uint32
+			err = binary.Read(bytes.NewBuffer(netIP), binary.BigEndian, &long)
+			num = big.NewInt(0).SetBytes(netIP)
+			return
+		}(ip.To4())
 		return
 	case ver >= 2 && ip.To16() != nil:
-		num, err = convIPv6(ip.To16())
+		num, err = func(netIP net.IP) (num *big.Int, err error) {
+			// from http://golang.org/pkg/net/#pkg-constants
+			// IPv6len = 16
+			num = big.NewInt(0).SetBytes(netIP)
+			return
+		}(ip.To16())
 		return
 	default:
-		err = errors.New(address + " is incorrect IP")
+		err = errors.New("'" + address + "' is incorrect IP")
 		return
 	}
-}
-
-// Convert netIP (v6) address to num (*big.Int)
-func convIPv4(netIP net.IP) (num *big.Int, err error) {
-	var long uint32
-	err = binary.Read(bytes.NewBuffer(netIP), binary.BigEndian, &long)
-	num = big.NewInt(0).SetBytes(netIP)
-	return
-}
-
-// Convert netIP (v6) address to num (*big.Int)
-func convIPv6(netIP net.IP) (num *big.Int, err error) {
-	// from http://golang.org/pkg/net/#pkg-constants
-	// IPv6len = 16
-	num = big.NewInt(0).SetBytes(netIP)
-	return
 }
 
 // Open csv file specified by path
