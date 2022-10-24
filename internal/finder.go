@@ -156,6 +156,26 @@ func binarySearch(rec [][]string, num *big.Int) (s [][]string, err error) {
 	return
 }
 
+// binarySearch
+func binarySearch(rec [][]string, bi *big.Int) (s [][]string, err error) {
+	mid := len(rec) / 2
+	first, _ := new(big.Int).SetString(rec[mid][0], 0)
+	last, _ := new(big.Int).SetString(rec[mid][1], 0)
+
+	switch {
+	case mid == 0:
+		err = errors.New("not found error")
+		return
+	case last.Cmp(bi) == -1 && first.Cmp(bi) == -1:
+		s, err = binarySearch(rec[mid:], bi)
+	case first.Cmp(bi) == 1 && last.Cmp(bi) == 1:
+		s, err = binarySearch(rec[:mid], bi)
+	default: // rec[mid] == bi
+		s = rec[:]
+	}
+	return
+}
+
 // Convert IP address to num (*big.Int)
 func convIP(address string) (num *big.Int, err error) {
 	ip := net.ParseIP(address)
