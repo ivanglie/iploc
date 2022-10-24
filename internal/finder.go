@@ -7,18 +7,15 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"math/big"
 	"net"
 	"os"
 	"strings"
 )
 
-// Item
-type Item struct {
-	IPfrom    *big.Int // First IP address show netblock.
-	IPto      *big.Int // Last IP address show netblock.
+type IP struct {
+	FirstIP   *big.Int // First IP address show netblock.
+	LastIP    *big.Int // Last IP address show netblock.
 	Code      string   // Two-character country code based on ISO 3166.
 	Country   string   // Country name based on ISO 3166.
 	Region    string   // Region or state name.
@@ -29,39 +26,36 @@ type Item struct {
 	TimeZone  string   // UTC time zone (with DST supported).
 }
 
-// String representation of *Item
-func (i *Item) String() string {
+// String representation of *IP
+func (ip *IP) String() string {
 	return fmt.Sprintf("Code: %s, Country: %s, Region: %s, City: %s, Latitude: %s, Longitude: %s, ZipCode: %s, TimeZone: %s",
-		i.Code, i.Country, i.Region, i.City, i.Latitude, i.Longitude, i.ZipCode, i.TimeZone)
+		ip.Code, ip.Country, ip.Region, ip.City, ip.Latitude, ip.Longitude, ip.ZipCode, ip.TimeZone)
 }
 
-// Find
-func Find(s string, paths ...string) (item *Item, err error) {
+func Search(address string, paths ...string) (ip *IP, err error) {
 	if len(paths) == 0 {
 		err = errors.New("empty path")
 		return
 	}
 
-	if len(s) == 0 {
-		err = errors.New("empty s")
+	if len(address) == 0 {
+		err = errors.New("empty address")
 		return
 	}
 
-	ip, err := convIP(s)
-	log.Println(ip)
+	bi, err := convIP(address)
 	if err != nil {
 		return
 	}
 
-	itemCh := make(chan *Item)
+	ipCh := make(chan *IP)
 	errCh := make(chan error, len(paths))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	for _, p := range paths {
-		log.Println(p)
-		go find(ctx, p, ip, itemCh, errCh)
+		go search(ctx, p, bi, ipCh, errCh)
 	}
 
 	numEOF := 0
@@ -69,13 +63,11 @@ func Find(s string, paths ...string) (item *Item, err error) {
 loop:
 	for {
 		select {
-		case item = <-itemCh:
+		case ip = <-ipCh:
 			cancel()
 			break loop
 		case <-errCh:
-			log.Println(err, numEOF, len(paths))
 			numEOF++
-			log.Println("numEOF:", numEOF)
 			if numEOF == len(paths) {
 				err = errors.New("not found")
 				cancel()
@@ -87,8 +79,8 @@ loop:
 	return
 }
 
-// Find
-func find(ctx context.Context, path string, ip *big.Int, itemCh chan<- *Item, errCh chan<- error) {
+// search
+func search(ctx context.Context, path string, bi *big.Int, ipCh chan<- *IP, errCh chan<- error) {
 	file, err := openCSV(path)
 	if err != nil {
 		return
@@ -97,45 +89,71 @@ func find(ctx context.Context, path string, ip *big.Int, itemCh chan<- *Item, er
 	reader := csv.NewReader(file)
 	reader.FieldsPerRecord = 10
 
-	n := 0
-	for {
-		n++
-		select {
-		case <-ctx.Done():
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		rec, err := reader.ReadAll()
+		if err != nil {
+			errCh <- err
 			return
-		default:
-			rec, err := reader.Read()
-			if err != nil {
-				log.Println("error:", err, "rec:", rec, "line:", n, "file:", file.Name())
-
-				if err == io.EOF {
-					errCh <- err
-					return
-				}
-
-				log.Println("error occurs when reading: ", err)
-				continue
-			}
-
-			fromIP, b := new(big.Int).SetString(rec[0], 0)
-			if !b {
-				log.Printf("field fromIP is not a int (%v)", err)
-				continue
-			}
-			toIP, b := new(big.Int).SetString(rec[1], 0)
-			if !b {
-				log.Printf("field toIP is not a int (%v)", err)
-				continue
-			}
-
-			it := &Item{fromIP, toIP, rec[2], rec[3], rec[4], rec[5], rec[6], rec[7], rec[8], rec[9]}
-			if ip.Cmp(it.IPfrom)+ip.Cmp(it.IPto) == 0 {
-				itemCh <- it
-				log.Println("success! line:", n, "file:", file.Name())
-				return
-			}
 		}
+
+		s, err := binarySearch(rec, bi)
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		f, b := new(big.Int).SetString(s[0][0], 0)
+		if !b {
+			err = errors.New("not big.Int")
+			errCh <- err
+			return
+		}
+
+		l, b := new(big.Int).SetString(s[0][1], 0)
+		if !b {
+			err = errors.New("not big.Int")
+			errCh <- err
+			return
+		}
+
+		ip := &IP{
+			FirstIP:   f,
+			LastIP:    l,
+			Code:      s[0][2],
+			Country:   s[0][3],
+			Region:    s[0][4],
+			City:      s[0][5],
+			Latitude:  s[0][6],
+			Longitude: s[0][7],
+			ZipCode:   s[0][8],
+			TimeZone:  s[0][9],
+		}
+		ipCh <- ip
+		return
 	}
+}
+
+// binarySearch
+func binarySearch(rec [][]string, bi *big.Int) (s [][]string, err error) {
+	mid := len(rec) / 2
+	first, _ := new(big.Int).SetString(rec[mid][0], 0)
+	last, _ := new(big.Int).SetString(rec[mid][1], 0)
+
+	switch {
+	case mid == 0:
+		err = errors.New("not found error")
+		return
+	case last.Cmp(bi) == -1 && first.Cmp(bi) == -1:
+		s, err = binarySearch(rec[mid:], bi)
+	case first.Cmp(bi) == 1 && last.Cmp(bi) == 1:
+		s, err = binarySearch(rec[:mid], bi)
+	default: // rec[mid] == bi
+		s = rec[:]
+	}
+	return
 }
 
 // Convert IP address to num (*big.Int)
