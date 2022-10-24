@@ -59,7 +59,7 @@ func search(res http.ResponseWriter, req *http.Request) {
 
 	address := req.URL.Query().Get("ip")
 	if len(address) == 0 {
-		log.Panic(errors.New(address + " is incorrect IP."))
+		log.Panic(errors.New("'" + address + "' is incorrect IP"))
 	}
 
 	t := time.Now()
@@ -69,8 +69,9 @@ func search(res http.ResponseWriter, req *http.Request) {
 	case ver >= 2:
 		ip, err = internal.Search(address, state.IPv6Chunks...)
 	default:
-		log.Panic(errors.New(address + " is incorrect IP."))
+		fmt.Fprintf(res, "'%s' is incorrect IP", address)
 	}
+
 	log.Printf("%s is %v (err: %v, elapsed time: %v)\n", address, ip, err, time.Since(t))
 	fmt.Fprintf(res, "%s is %v (err: %v, elapsed time: %v)", address, ip, err, time.Since(t))
 }
