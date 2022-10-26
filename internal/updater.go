@@ -18,17 +18,15 @@ import (
 )
 
 const (
-	baseUrl  = "https://www.ip2location.com/download" // IP2Location API Download Link
-	codeIPv4 = "DB11LITE"                             // IP2Location IPv4 Database Code
-	codeIPv6 = "DB11LITEIPV6"                         // IP2Location IPv6 Database Code
+	baseUrl = "https://www.ip2location.com/download" // IP2Location API Download Link
+	dbCode  = "DB11LITEIPV6"                         // IP2Location IPv4 and IPv6 Database Code
 )
 
 // Keep a state
 type State struct {
 	// TODO: mutex
-	IPv4Chunks []string `json:"IPv4"` // csv file paths of IPv4 (chunks)
-	IPv6Chunks []string `json:"IPv6"` // csv file paths of IPv6 (chunks)
-	wd         string   // Working directory path
+	Chunks []string `json:"Chunks"` // csv file paths of IPv4 and IPv6 (chunks)
+	wd     string   // Working directory path
 }
 
 // Create a new state
@@ -82,23 +80,16 @@ func (s *State) Update() {
 		log.Println(code, "was unzipped.")
 
 		log.Println(csv, "splitting...")
-		if strings.Contains(csv, "IPV6") {
-			state.IPv6Chunks, err = s.split(csv)
-			if err != nil {
-				log.Panic(err)
-			}
-		} else {
-			state.IPv4Chunks, err = s.split(csv)
-			if err != nil {
-				log.Panic(err)
-			}
+		state.Chunks, err = s.split(csv)
+		if err != nil {
+			log.Panic(err)
 		}
 		log.Println(csv, "was splitted.")
 	}
 
 	wg := &sync.WaitGroup{}
 
-	for _, code := range []string{codeIPv4, codeIPv6} {
+	for _, code := range []string{dbCode} {
 		wg.Add(1)
 
 		c := code

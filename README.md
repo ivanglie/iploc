@@ -1,6 +1,6 @@
 # iploc
 
-Service for searching the location of the IP address by using IP2Location LITE Database.
+Service for fast searching the location of the IP address using by IP2Location LITE Database.
 
 ## Acknowledgment
 
