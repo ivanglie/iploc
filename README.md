@@ -1,6 +1,12 @@
 # iploc
 
-Service for fast searching the location of the IP address using by IP2Location LITE Database.
+Service that provides translates IP address (IPv4 or IPv6) to country, region or state, city, latitude and longitude, ZIP/Postal code, and time zone.
+
+## Features
+
+* Fast search due to the concurrency binary search algorithm on the smaller chunks into which the raw data file was splitted previously
+
+* Database auto-update procedure
 
 ## Acknowledgment
 

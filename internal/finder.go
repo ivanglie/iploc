@@ -78,7 +78,7 @@ loop:
 	return
 }
 
-// search
+// Search
 func search(ctx context.Context, path string, num *big.Int, ipCh chan<- *IP, errCh chan<- error) {
 	file, err := openCSV(path)
 	if err != nil {
@@ -135,7 +135,7 @@ func search(ctx context.Context, path string, num *big.Int, ipCh chan<- *IP, err
 	}
 }
 
-// binarySearch
+// Binary search
 func binarySearch(rec [][]string, num *big.Int) (s [][]string, err error) {
 	mid := len(rec) / 2
 	first, _ := new(big.Int).SetString(rec[mid][0], 0)
