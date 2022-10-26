@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	scsv "github.com/tolik505/split-csv"
 )
@@ -22,14 +21,11 @@ const (
 	dbCode  = "DB11LITEIPV6"                         // IP2Location IPv4 and IPv6 Database Code
 )
 
-// Keep a state
 type State struct {
-	// TODO: mutex
 	Chunks []string `json:"Chunks"` // csv file paths of IPv4 and IPv6 (chunks)
 	wd     string   // Working directory path
 }
 
-// Create a new state
 func NewState() (s *State) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -41,7 +37,7 @@ func NewState() (s *State) {
 	return
 }
 
-// Write *State to JSON file specified by name
+// WriteState s to JSON file specified by name
 func WriteState(s *State, name string) (err error) {
 	f, err := json.MarshalIndent(s, "", " ")
 	err = ioutil.WriteFile(name, f, 0644)
@@ -49,7 +45,7 @@ func WriteState(s *State, name string) (err error) {
 	return
 }
 
-// Read state from JSON file specified by name
+// ReadState from JSON file specified by name
 func ReadState(name string) (s *State, err error) {
 	f, err := os.Open(name)
 	if err != nil {
@@ -87,20 +83,7 @@ func (s *State) Update() {
 		log.Println(csv, "was splitted.")
 	}
 
-	wg := &sync.WaitGroup{}
-
-	for _, code := range []string{dbCode} {
-		wg.Add(1)
-
-		c := code
-		go func() {
-			defer wg.Done()
-			update(s, c)
-		}()
-
-	}
-
-	wg.Wait()
+	go update(s, dbCode)
 }
 
 // Split csv file specified by name on smaller chunks and return a filepaths of chunks.
