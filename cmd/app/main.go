@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/ivanglie/iploc/internal"
@@ -17,7 +16,7 @@ var state *internal.State
 func init() {
 	s, err := internal.ReadState("state.json")
 	if s != nil && err == nil {
-		if len(s.IPv4Chunks) > 0 && len(s.IPv6Chunks) > 0 {
+		if len(s.Chunks) > 0 {
 			log.Println("You're up to date")
 		}
 		state = s
@@ -63,14 +62,7 @@ func search(res http.ResponseWriter, req *http.Request) {
 	}
 
 	t := time.Now()
-	switch ver := strings.Count(address, ":"); {
-	case ver < 2:
-		ip, err = internal.Search(address, state.IPv4Chunks...)
-	case ver >= 2:
-		ip, err = internal.Search(address, state.IPv6Chunks...)
-	default:
-		fmt.Fprintf(res, "'%s' is incorrect IP", address)
-	}
+	ip, err = internal.Search(address, state.Chunks...)
 
 	log.Printf("%s is %v (err: %v, elapsed time: %v)\n", address, ip, err, time.Since(t))
 	fmt.Fprintf(res, "%s is %v (err: %v, elapsed time: %v)", address, ip, err, time.Since(t))

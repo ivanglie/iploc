@@ -1,16 +1,14 @@
 package internal
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"net"
 	"os"
-	"strings"
 )
 
 type IP struct {
@@ -43,10 +41,11 @@ func Search(address string, paths ...string) (ip *IP, err error) {
 		return
 	}
 
-	num, err := convIP(address)
+	num, err := convertIP(address)
 	if err != nil {
 		return
 	}
+	log.Println("num=", num)
 
 	ipCh := make(chan *IP)
 	errCh := make(chan error, len(paths))
@@ -150,41 +149,33 @@ func binarySearch(rec [][]string, num *big.Int) (s [][]string, err error) {
 		s, err = binarySearch(rec[mid:], num)
 	case num.Cmp(first)+num.Cmp(last) < 0:
 		s, err = binarySearch(rec[:mid], num)
-	default: // case bi.Cmp(first)+bi.Cmp(last) == 0:
+	default: // case num.Cmp(first)+num.Cmp(last) == 0:
 		s = rec[mid:]
 	}
 	return
 }
 
 // Convert IP address to num (*big.Int)
-func convIP(address string) (num *big.Int, err error) {
+func convertIP(address string) (num *big.Int, err error) {
+	for i := 0; i < len(address); i++ {
+		if address[i] == '.' {
+			// Convert IPV4 to IPV6
+			// from https://stackoverflow.com/questions/27398691/ip-database-from-ip2location-and-convert-ipv4-to-ipv6-in-perl
+			address = "::ffff:" + address
+			break
+		}
+	}
+
 	ip := net.ParseIP(address)
 	if ip == nil {
 		err = errors.New("'" + address + "' is incorrect IP")
 		return
 	}
 
-	switch ver := strings.Count(address, ":"); {
-	case ver < 2 && ip.To4() != nil:
-		num, err = func(netIP net.IP) (num *big.Int, err error) {
-			var long uint32
-			err = binary.Read(bytes.NewBuffer(netIP), binary.BigEndian, &long)
-			num = big.NewInt(0).SetBytes(netIP)
-			return
-		}(ip.To4())
-		return
-	case ver >= 2 && ip.To16() != nil:
-		num, err = func(netIP net.IP) (num *big.Int, err error) {
-			// from http://golang.org/pkg/net/#pkg-constants
-			// IPv6len = 16
-			num = big.NewInt(0).SetBytes(netIP)
-			return
-		}(ip.To16())
-		return
-	default:
-		err = errors.New("'" + address + "' is incorrect IP")
-		return
-	}
+	// from http://golang.org/pkg/net/#pkg-constants
+	// IPv6len = 16
+	num = big.NewInt(0).SetBytes(ip.To16())
+	return
 }
 
 // Open csv file specified by path
