@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	scsv "github.com/tolik505/split-csv"
 )
@@ -21,46 +21,49 @@ const (
 	dbCode  = "DB11LITEIPV6"                         // IP2Location IPv4 and IPv6 Database Code
 )
 
-type State struct {
-	Chunks []string `json:"Chunks"` // csv file paths of IPv4 and IPv6 (chunks)
-	wd     string   // Working directory path
+type Chunks struct {
+	Paths []string `json:"Chunks"` // csv file paths of IPv4 and IPv6 (chunks)
+	wd    string   // Working directory path
 }
 
-func NewState() (s *State) {
+func NewChunks() (s *Chunks) {
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Panic(err)
 		return
 	}
 
-	s = &State{wd: wd}
+	s = &Chunks{wd: wd}
 	return
 }
 
-// WriteState s to JSON file specified by name
-func WriteState(s *State, name string) (err error) {
+// WriteChunks s to JSON file specified by name
+func WriteChunks(s *Chunks, name string) (err error) {
 	f, err := json.MarshalIndent(s, "", " ")
-	err = ioutil.WriteFile(name, f, 0644)
+	if err != nil {
+		return
+	}
 
+	err = os.WriteFile(name, f, 0644)
 	return
 }
 
-// ReadState from JSON file specified by name
-func ReadState(name string) (s *State, err error) {
+// ReadChunks from JSON file specified by name
+func ReadChunks(name string) (s *Chunks, err error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return
 	}
 	defer f.Close()
 
-	bytes, err := ioutil.ReadAll(f)
+	bytes, err := io.ReadAll(f)
 	err = json.Unmarshal(bytes, &s)
 	return
 }
 
 // Update data: download zip file, unzip it to csv file, and split large csv file on smaller chunks.
-func (s *State) Update() {
-	update := func(state *State, code string) {
+func (s *Chunks) Update() {
+	update := func(chunks *Chunks, code string) {
 		log.Println(code, "downloading...")
 		err := s.download(code)
 		if err != nil {
@@ -76,18 +79,24 @@ func (s *State) Update() {
 		log.Println(code, "was unzipped.")
 
 		log.Println(csv, "splitting...")
-		state.Chunks, err = s.split(csv)
+		chunks.Paths, err = s.split(csv)
 		if err != nil {
 			log.Panic(err)
 		}
 		log.Println(csv, "was splitted.")
 	}
 
-	go update(s, dbCode)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		update(s, dbCode)
+	}()
+	wg.Wait()
 }
 
 // Split csv file specified by name on smaller chunks and return a filepaths of chunks.
-func (s *State) split(name string) (chunks []string, err error) {
+func (s *Chunks) split(name string) (chunks []string, err error) {
 	splitter := scsv.New()
 	splitter.FileChunkSize = 100_000_000 //in bytes (100MB)
 	splitter.WithHeader = false          //copying of header in chunks is disabled
@@ -96,8 +105,8 @@ func (s *State) split(name string) (chunks []string, err error) {
 	return
 }
 
-// Unzip file specified by zipName and return a extracted fileName.
-func (s *State) extract(zipName string) (fileName string, err error) {
+// Unzip file specified by zipName and return an extracted fileName.
+func (s *Chunks) extract(zipName string) (fileName string, err error) {
 	srcFilePath := s.wd + string(os.PathSeparator) + zipName + ".zip"
 	r, err := zip.OpenReader(srcFilePath)
 	if err != nil {
@@ -167,7 +176,7 @@ func (s *State) extract(zipName string) (fileName string, err error) {
 }
 
 // Download IP2Location database specified by code.
-func (s *State) download(code string) (err error) {
+func (s *Chunks) download(code string) (err error) {
 	token := os.Getenv("IP2LOCATION_TOKEN")
 	url := fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code)
 
