@@ -118,18 +118,8 @@ func search(ctx context.Context, path string, num *big.Int, ipCh chan<- *IP, err
 			return
 		}
 
-		ip := &IP{
-			FirstIP:   f,
-			LastIP:    l,
-			Code:      s[0][2],
-			Country:   s[0][3],
-			Region:    s[0][4],
-			City:      s[0][5],
-			Latitude:  s[0][6],
-			Longitude: s[0][7],
-			ZipCode:   s[0][8],
-			TimeZone:  s[0][9],
-		}
+		ip := &IP{FirstIP: f, LastIP: l, Code: s[0][2], Country: s[0][3], Region: s[0][4], City: s[0][5],
+			Latitude: s[0][6], Longitude: s[0][7], ZipCode: s[0][8], TimeZone: s[0][9]}
 		ipCh <- ip
 		return
 	}

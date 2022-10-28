@@ -1,0 +1,7 @@
+
+**/*.DS_Store
+**/*.zip
+**/*.CSV
+**/*.TXT
+**/*.json
+**/*.sh
