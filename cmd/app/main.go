@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -11,24 +12,24 @@ import (
 	"github.com/ivanglie/iploc/internal"
 )
 
-var state *internal.State
+var chunks *internal.Chunks
 
 func init() {
-	s, err := internal.ReadState("state.json")
+	s, err := internal.ReadChunks("chunks.json")
 	if s != nil && err == nil {
-		if len(s.Chunks) > 0 {
+		if len(s.Paths) > 0 {
 			log.Println("You're up to date")
 		}
-		state = s
+		chunks = s
 		return
 	}
 
 	log.Println(err)
 
-	state = internal.NewState()
+	chunks = internal.NewChunks()
 	log.Println("Updating...")
-	state.Update()
-	err = internal.WriteState(state, "state.json")
+	chunks.Update()
+	err = internal.WriteChunks(chunks, "chunks.json")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -62,8 +63,19 @@ func search(res http.ResponseWriter, req *http.Request) {
 	}
 
 	t := time.Now()
-	ip, err = internal.Search(address, state.Chunks...)
+	ip, err = internal.Search(address, chunks.Paths...)
+	if err != nil {
+		log.Printf("err: %v\n", err)
+		return
+	}
 
-	log.Printf("%s is %v (err: %v, elapsed time: %v)\n", address, ip, err, time.Since(t))
-	fmt.Fprintf(res, "%s is %v (err: %v, elapsed time: %v)", address, ip, err, time.Since(t))
+	d := time.Since(t)
+	bytes, err := json.MarshalIndent(ip, "", " ")
+	if err != nil {
+		log.Printf("err: %v\n", err)
+		return
+	}
+
+	log.Printf("%s is %v\nerr: %v\nelapsed time: %v\n", address, string(bytes), err, d)
+	fmt.Fprintln(res, string(bytes))
 }

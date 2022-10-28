@@ -12,8 +12,8 @@ import (
 )
 
 type IP struct {
-	FirstIP   *big.Int // First IP address show netblock.
-	LastIP    *big.Int // Last IP address show netblock.
+	FirstIP   *big.Int `json:"-"` // First IP address show netblock.
+	LastIP    *big.Int `json:"-"` // Last IP address show netblock.
 	Code      string   // Two-character country code based on ISO 3166.
 	Country   string   // Country name based on ISO 3166.
 	Region    string   // Region or state name.
