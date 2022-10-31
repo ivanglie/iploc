@@ -12,9 +12,7 @@ import (
 	"github.com/ivanglie/iploc/internal"
 )
 
-var (
-	db *internal.DB
-)
+var db *internal.DB
 
 func init() {
 	log.Println("Updating...")
@@ -62,7 +60,7 @@ func search(res http.ResponseWriter, req *http.Request) {
 	}
 
 	d := time.Since(t)
-	log.Printf("%s is %v, err: %v, elapsed time: %v\n", a, ip, err, d)
+	log.Printf("%s is %v, elapsed time: %v\n", a, ip, d)
 
 	b, err := json.MarshalIndent(ip, "", " ")
 	if err != nil {
