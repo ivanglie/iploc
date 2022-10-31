@@ -35,10 +35,10 @@ func (db *DB) Update() (err error) {
 		var err error
 
 		log.Println(code, "downloading...")
-		// err = download(code)
-		// if err != nil {
-		// 	log.Panic(err)
-		// }
+		err = download(code)
+		if err != nil {
+			log.Panic(err)
+		}
 		log.Println(code, "downloaded")
 
 		log.Println(code, "unzipping...")
