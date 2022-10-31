@@ -15,14 +15,16 @@ var db *DB
 func setupTest(t *testing.T) {
 	t.Log("Setup test")
 
-	f, _ := os.Open("../test/test.csv")
+	f, err := os.Open("../test/test.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer f.Close()
 
+	db = NewDB()
 	reader := csv.NewReader(f)
 	reader.FieldsPerRecord = 10
 
-	var err error
-	db = NewDB()
 	db.rec, err = reader.ReadAll()
 	if err != nil {
 		log.Panic(err)
