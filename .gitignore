@@ -1,0 +1,11 @@
+.DS_Store
+vendor/
+*.out
+*.html
+*.env
+*.debug
+*.sh
+*.txt
+*.csv
+*.zip
+*.json
