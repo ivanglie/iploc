@@ -2,7 +2,6 @@ package internal
 
 import (
 	"archive/zip"
-	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	scsv "github.com/tolik505/split-csv"
 )
 
 const (
@@ -20,65 +21,68 @@ const (
 )
 
 type DB struct {
-	path string
-	file *os.File
-	rec  [][]string
+	code   string   // database code.
+	zip    string   // zip file name.
+	csv    string   // csv file name.
+	file   *os.File // csv file.
+	size   int      // csv file size.
+	chunks []string
+	rec    [][]string
 }
 
 func NewDB() *DB {
-	return &DB{}
+	return &DB{code: dbCode}
+}
+
+// String representation of *IP.
+func (db *DB) String() string {
+	return fmt.Sprintf("code: %s, zip: %s, csv: %s, file: %v, size: %d (in bytes), chunks: %d, recs: %d\n",
+		db.code, db.zip, db.csv, db.file, db.size, len(db.chunks), len(db.rec))
 }
 
 // Update database: download zip file, unzip it to csv file, open and read it.
 func (db *DB) Update() (err error) {
-	update := func(code string) {
+	update := func() {
 		var err error
 
-		log.Println(code, "downloading...")
-		err = download(code)
+		log.Println(db.code, "downloading...")
+		// db.zip = db.code + ".zip" // debug
+		db.zip, err = download(db.code)
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Println(code, "downloaded")
+		log.Println(db.code, "downloaded")
 
-		log.Println(code, "unzipping...")
-		db.path, err = extract(code)
+		log.Println(db.zip, "unzipping...")
+		db.csv, db.size, err = extract(db.zip)
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Println(code, "unzipped")
+		log.Println(db.zip, "unzipped")
 
-		log.Println(code, "opening...")
-		db.file, err = openCSV(db.path)
+		log.Println(db.csv, "splitting...")
+		db.chunks, err = split(db.csv, db.size)
 		if err != nil {
 			log.Panic(err)
 		}
-		defer db.file.Close()
-		log.Println(code, "opened...")
+		log.Printf("%s splitted (%d chunks)\n", db.csv, len(db.chunks))
 
-		log.Println(code, "reading...")
-		reader := csv.NewReader(db.file)
-		reader.FieldsPerRecord = 10
-		db.rec, err = reader.ReadAll()
-		if err != nil {
-			log.Panic(err)
-		}
-		log.Println(code, "read")
+		log.Println("db=", db)
 	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		update(dbCode)
+		update()
 	}()
 	wg.Wait()
 
 	return
 }
 
-// openCSV file specified by path.
-func openCSV(path string) (file *os.File, err error) {
+// open csv file specified by path.
+func open(path string) (file *os.File, err error) {
 	if len(path) == 0 {
 		err = errors.New("path is empty")
 		return
@@ -88,120 +92,125 @@ func openCSV(path string) (file *os.File, err error) {
 	return
 }
 
-// extract (unzip) file specified by zipName and return an extracted fileName.
-func extract(zipName string) (fileName string, err error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Panic(err)
-		return
-	}
-	srcFilePath := wd + string(os.PathSeparator) + zipName + ".zip"
-	r, err := zip.OpenReader(srcFilePath)
-	if err != nil {
-		return
-	}
-	defer func() {
-		if err := r.Close(); err != nil {
-			panic(err)
-		}
-	}()
+// Split csv file specified by n on smaller chunks and set a filepaths of chunks into db.chunks.
+func split(n string, s int) (chunks []string, err error) {
+	splitter := scsv.New()
+	splitter.FileChunkSize = s / 200
+	splitter.WithHeader = false // copying of header in chunks is disabled
+	chunks, err = splitter.Split(n, "")
 
-	os.MkdirAll(wd, 0755)
+	return
+}
 
+// extract (unzip) file specified by n and return an extracted csv, size.
+func extract(n string) (csv string, size int, err error) {
 	// Closure to address file descriptors issue with all the deferred .Close() methods
-	extractAndWriteFile := func(dir string, zf *zip.File) (string, error) {
-		rc, err := zf.Open()
+	extractAndWriteFile := func(d string, z *zip.File) (s string, err error) {
+		var rc io.ReadCloser
+		rc, err = z.Open()
 		if err != nil {
-			return "", err
+			return
 		}
-		defer func() {
-			if err := rc.Close(); err != nil {
-				panic(err)
-			}
-		}()
+		defer rc.Close()
 
-		path := filepath.Join(dir, zf.Name)
+		p := filepath.Join(d, z.Name)
 
 		// Check for ZipSlip (Directory traversal)
-		if !strings.HasPrefix(path, filepath.Clean(dir)+string(os.PathSeparator)) {
-			return "", fmt.Errorf("illegal file path: %s", path)
+		if !strings.HasPrefix(p, filepath.Clean(d)+string(os.PathSeparator)) {
+			err = errors.New("illegal file path: " + p)
+			return
 		}
 
-		if zf.FileInfo().IsDir() {
-			os.MkdirAll(path, zf.Mode())
-		} else {
-			os.MkdirAll(filepath.Dir(path), zf.Mode())
-			f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, zf.Mode())
+		if z.FileInfo().IsDir() {
+			err = os.MkdirAll(p, z.Mode())
 			if err != nil {
-				return "", err
+				return
 			}
-			defer func() {
-				if err := f.Close(); err != nil {
-					panic(err)
-				}
-			}()
+		} else {
+			err = os.MkdirAll(filepath.Dir(p), z.Mode())
+			if err != nil {
+				return
+			}
+
+			var f *os.File
+			f, err = os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, z.Mode())
+			if err != nil {
+				return
+			}
+			defer f.Close()
 
 			_, err = io.Copy(f, rc)
 			if err != nil {
-				return "", err
+				return
 			}
 		}
 
-		return zf.FileInfo().Name(), nil
-	}
-
-	for _, f := range r.File {
-		name, err := extractAndWriteFile(wd, f)
-		if err != nil {
-			return "", err
-		}
-		if strings.Contains(name, ".CSV") {
-			fileName = name
-		}
-	}
-
-	return fileName, nil
-}
-
-// download IP2Location database specified by code.
-func download(code string) (err error) {
-	token := os.Getenv("IP2LOCATION_TOKEN")
-	url := fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code)
-
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Panic(err)
+		s = z.FileInfo().Name()
 		return
 	}
 
-	destFilePath := wd + string(os.PathSeparator) + code + ".zip"
-	err = func(url, destFilePath string) error {
-		// Create the file
-		out, err := os.Create(destFilePath)
+	wd, err := os.Getwd()
+	if err != nil {
+		return
+	}
+
+	r, err := zip.OpenReader(filepath.Join(wd, n))
+	if err != nil {
+		return
+	}
+	defer r.Close()
+
+	err = os.MkdirAll(wd, 0755)
+	if err != nil {
+		return
+	}
+
+	for _, f := range r.File {
+		var s string
+		s, err = extractAndWriteFile(wd, f)
 		if err != nil {
-			return err
-		}
-		defer out.Close()
-
-		// Get the data
-		resp, err := http.Get(url)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		// Check server response
-		if resp.StatusCode != http.StatusOK {
-			return errors.New("bad status: " + resp.Status)
+			return
 		}
 
-		// Writer the body to file
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return err
+		if strings.Contains(s, ".CSV") {
+			csv = s
+			size = int(f.UncompressedSize64)
+			return
 		}
+	}
 
-		return nil
-	}(url, destFilePath)
+	return
+}
+
+// download IP2Location database specified by code.
+func download(code string) (s string, err error) {
+	z := code + ".zip"
+	token := os.Getenv("IP2LOCATION_TOKEN")
+	url := fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code)
+
+	out, err := os.Create(z)
+	if err != nil {
+		return
+	}
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New("bad status: " + resp.Status)
+		return
+	}
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return
+	}
+
+	s = z
+
 	return
 }

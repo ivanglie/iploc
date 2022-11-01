@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"log"
@@ -39,18 +40,59 @@ func (db *DB) Search(address string) (ip *IP, err error) {
 		return
 	}
 
-	if len(db.rec) == 0 {
-		err = errors.New("rec is empty")
-		return
-	}
-
 	num, err := convertIP(address)
 	if err != nil {
 		return
 	}
 
+	if db.chunks != nil {
+		var rec [][]string
+		rec, _, err = searchChunk(db.chunks, num)
+		if err != nil {
+			return
+		}
+		db.rec = rec
+		log.Println("db=", db)
+	}
+
 	ip, _, err = binarySearch(db.rec, num)
 	if err != nil {
+		return
+	}
+
+	// db.rec = nil
+
+	return
+}
+
+func searchChunk(chunks []string, num *big.Int) (r [][]string, out []string, err error) {
+	mid := len(chunks) / 2
+	f, err := open(chunks[mid])
+	if err != nil {
+		return
+	}
+
+	reader := csv.NewReader(f)
+	reader.FieldsPerRecord = 10
+	rec, err := reader.ReadAll()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	first, _ := new(big.Int).SetString(rec[0][0], 0)
+	last, _ := new(big.Int).SetString(rec[len(rec)-1][1], 0)
+
+	switch {
+	case len(chunks) == 0:
+		err = errors.New("not found")
+		return
+	case num.Cmp(last) > 0:
+		r, out, err = searchChunk(chunks[mid:], num)
+	case num.Cmp(first) < 0:
+		r, out, err = searchChunk(chunks[:mid], num)
+	case num.Cmp(first)+num.Cmp(last) == 0:
+		out = []string{chunks[mid]}
+		r = rec
 		return
 	}
 

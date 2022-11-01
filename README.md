@@ -4,6 +4,8 @@ Service that provides translates IP address (IPv4 or IPv6) to country, region or
 
 ## Features
 
+* Reduced RAM usage by searching in smaller chunks into which the raw data file was split previously
+
 * Fast search due to the binary search algorithm
 
 * Database auto-update procedure
