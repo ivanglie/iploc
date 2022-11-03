@@ -21,11 +21,10 @@ const (
 )
 
 type DB struct {
-	code   string   // database code.
-	zip    string   // zip file name.
-	csv    string   // csv file name.
-	file   *os.File // csv file.
-	size   int      // csv file size.
+	code   string // database code.
+	zip    string // zip file name.
+	csv    string // csv file name.
+	size   int64  // csv file size.
 	chunks []string
 	rec    [][]string
 }
@@ -36,8 +35,8 @@ func NewDB() *DB {
 
 // String representation of *IP.
 func (db *DB) String() string {
-	return fmt.Sprintf("code: %s, zip: %s, csv: %s, file: %v, size: %d (in bytes), chunks: %d, recs: %d\n",
-		db.code, db.zip, db.csv, db.file, db.size, len(db.chunks), len(db.rec))
+	return fmt.Sprintf("code: %s, zip: %s, csv: %s, size: %d (in bytes), chunks: %d, recs: %d\n",
+		db.code, db.zip, db.csv, db.size, len(db.chunks), len(db.rec))
 }
 
 // Update database: download zip file, unzip it to csv file, open and read it.
@@ -65,7 +64,7 @@ func (db *DB) Update() (err error) {
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Printf("%s splitted (%d chunks)\n", db.csv, len(db.chunks))
+		log.Printf("%s splitted (%d chunks)", db.csv, len(db.chunks))
 
 		log.Println("db=", db)
 	}
@@ -93,9 +92,9 @@ func open(path string) (file *os.File, err error) {
 }
 
 // Split csv file specified by n on smaller chunks and set a filepaths of chunks into db.chunks.
-func split(n string, s int) (chunks []string, err error) {
+func split(n string, s int64) (chunks []string, err error) {
 	splitter := scsv.New()
-	splitter.FileChunkSize = s / 200
+	splitter.FileChunkSize = int(s) / 200
 	splitter.WithHeader = false // copying of header in chunks is disabled
 	chunks, err = splitter.Split(n, "")
 
@@ -103,7 +102,7 @@ func split(n string, s int) (chunks []string, err error) {
 }
 
 // extract (unzip) file specified by n and return an extracted csv, size.
-func extract(n string) (csv string, size int, err error) {
+func extract(n string) (csv string, size int64, err error) {
 	// Closure to address file descriptors issue with all the deferred .Close() methods
 	extractAndWriteFile := func(d string, z *zip.File) (s string, err error) {
 		var rc io.ReadCloser
@@ -174,7 +173,7 @@ func extract(n string) (csv string, size int, err error) {
 
 		if strings.Contains(s, ".CSV") {
 			csv = s
-			size = int(f.UncompressedSize64)
+			size = f.FileInfo().Size()
 			return
 		}
 	}
