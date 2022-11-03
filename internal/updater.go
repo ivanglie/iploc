@@ -21,11 +21,10 @@ const (
 )
 
 type DB struct {
-	code   string   // database code.
-	zip    string   // zip file name.
-	csv    string   // csv file name.
-	file   *os.File // csv file.
-	size   int      // csv file size.
+	code   string // database code.
+	zip    string // zip file name.
+	csv    string // csv file name.
+	size   int64  // csv file size.
 	chunks []string
 	rec    [][]string
 }
@@ -36,8 +35,8 @@ func NewDB() *DB {
 
 // String representation of *IP.
 func (db *DB) String() string {
-	return fmt.Sprintf("code: %s, zip: %s, csv: %s, file: %v, size: %d (in bytes), chunks: %d, recs: %d\n",
-		db.code, db.zip, db.csv, db.file, db.size, len(db.chunks), len(db.rec))
+	return fmt.Sprintf("code: %s, zip: %s, csv: %s, size: %d (in bytes), chunks: %d, recs: %d\n",
+		db.code, db.zip, db.csv, db.size, len(db.chunks), len(db.rec))
 }
 
 // Update database: download zip file, unzip it to csv file, open and read it.
@@ -47,27 +46,28 @@ func (db *DB) Update() (err error) {
 
 		log.Println(db.code, "downloading...")
 		// db.zip = db.code + ".zip" // debug
-		db.zip, err = download(db.code)
+		var s int64
+		db.zip, s, err = download(db.code)
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Println(db.code, "downloaded")
+		log.Printf("%s downloaded (%d bytes)", db.zip, s)
 
 		log.Println(db.zip, "unzipping...")
-		db.csv, db.size, err = extract(db.zip)
+		db.csv, db.size, err = unzipCSV(db.zip)
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Println(db.zip, "unzipped")
+		log.Printf("%s unzipped (%d bytes)", db.csv, db.size)
 
 		log.Println(db.csv, "splitting...")
-		db.chunks, err = split(db.csv, db.size)
+		db.chunks, err = splitCSV(db.csv, db.size)
 		if err != nil {
 			log.Panic(err)
 		}
-		log.Printf("%s splitted (%d chunks)\n", db.csv, len(db.chunks))
+		log.Printf("%s splitted (%d chunks)", db.csv, len(db.chunks))
 
-		log.Println("db=", db)
+		log.Printf("db=%v", db)
 	}
 
 	wg := &sync.WaitGroup{}
@@ -92,103 +92,89 @@ func open(path string) (file *os.File, err error) {
 	return
 }
 
-// Split csv file specified by n on smaller chunks and set a filepaths of chunks into db.chunks.
-func split(n string, s int) (chunks []string, err error) {
+// splitCSV file specified by n on smaller chunks and return a filepaths of chunks.
+func splitCSV(n string, s int64) (chunks []string, err error) {
 	splitter := scsv.New()
-	splitter.FileChunkSize = s / 200
+	splitter.FileChunkSize = int(s) / 200
 	splitter.WithHeader = false // copying of header in chunks is disabled
 	chunks, err = splitter.Split(n, "")
 
 	return
 }
 
-// extract (unzip) file specified by n and return an extracted csv, size.
-func extract(n string) (csv string, size int, err error) {
-	// Closure to address file descriptors issue with all the deferred .Close() methods
-	extractAndWriteFile := func(d string, z *zip.File) (s string, err error) {
-		var rc io.ReadCloser
-		rc, err = z.Open()
-		if err != nil {
-			return
-		}
-		defer rc.Close()
-
-		p := filepath.Join(d, z.Name)
-
-		// Check for ZipSlip (Directory traversal)
-		if !strings.HasPrefix(p, filepath.Clean(d)+string(os.PathSeparator)) {
-			err = errors.New("illegal file path: " + p)
-			return
-		}
-
-		if z.FileInfo().IsDir() {
-			err = os.MkdirAll(p, z.Mode())
-			if err != nil {
-				return
-			}
-		} else {
-			err = os.MkdirAll(filepath.Dir(p), z.Mode())
-			if err != nil {
-				return
-			}
-
-			var f *os.File
-			f, err = os.OpenFile(p, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, z.Mode())
-			if err != nil {
-				return
-			}
-			defer f.Close()
-
-			_, err = io.Copy(f, rc)
-			if err != nil {
-				return
-			}
-		}
-
-		s = z.FileInfo().Name()
-		return
-	}
-
+// unzipCSV file specified by n and return an extracted csv filename, size.
+func unzipCSV(n string) (csv string, size int64, err error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return
 	}
 
-	r, err := zip.OpenReader(filepath.Join(wd, n))
+	var archive *zip.ReadCloser
+	archive, err = zip.OpenReader(n)
 	if err != nil {
 		return
 	}
-	defer r.Close()
+	defer archive.Close()
 
-	err = os.MkdirAll(wd, 0755)
-	if err != nil {
-		return
-	}
+	for _, f := range archive.File {
+		if !strings.Contains(f.Name, ".CSV") {
+			err = errors.New("not csv file")
+			continue
+		}
 
-	for _, f := range r.File {
-		var s string
-		s, err = extractAndWriteFile(wd, f)
+		filePath := filepath.Join(wd, f.Name)
+
+		if !strings.HasPrefix(filePath, filepath.Clean(wd)+string(os.PathSeparator)) {
+			err = errors.New("invalid file path " + filePath)
+			return
+		}
+
+		if f.FileInfo().IsDir() {
+			fmt.Println("creating directory...")
+			os.MkdirAll(filePath, os.ModePerm)
+			continue
+		}
+
+		if err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
+			return
+		}
+
+		var dstFile *os.File
+		dstFile, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 		if err != nil {
 			return
 		}
+		defer dstFile.Close()
 
-		if strings.Contains(s, ".CSV") {
-			csv = s
-			size = int(f.UncompressedSize64)
+		var fileInArchive io.ReadCloser
+		fileInArchive, err = f.Open()
+		if err != nil {
 			return
 		}
+		defer fileInArchive.Close()
+
+		if _, err = io.Copy(dstFile, fileInArchive); err != nil {
+			return
+		}
+
+		var dstFileInfo os.FileInfo
+		if dstFileInfo, err = dstFile.Stat(); err != nil {
+			return
+		}
+
+		csv = dstFileInfo.Name()
+		size = dstFileInfo.Size()
 	}
 
 	return
 }
 
-// download IP2Location database specified by code.
-func download(code string) (s string, err error) {
-	z := code + ".zip"
+// download IP2Location database specified by code and return a zip filename, size.
+func download(code string) (z string, size int64, err error) {
 	token := os.Getenv("IP2LOCATION_TOKEN")
 	url := fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code)
 
-	out, err := os.Create(z)
+	out, err := os.Create(code + ".zip")
 	if err != nil {
 		return
 	}
@@ -205,12 +191,17 @@ func download(code string) (s string, err error) {
 		return
 	}
 
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
+	if _, err = io.Copy(out, resp.Body); err != nil {
 		return
 	}
 
-	s = z
+	var outFileInfo os.FileInfo
+	if outFileInfo, err = out.Stat(); err != nil {
+		return
+	}
+
+	z = outFileInfo.Name()
+	size = outFileInfo.Size()
 
 	return
 }

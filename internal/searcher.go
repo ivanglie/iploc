@@ -52,15 +52,12 @@ func (db *DB) Search(address string) (ip *IP, err error) {
 			return
 		}
 		db.rec = rec
-		log.Println("db=", db)
 	}
 
 	ip, _, err = binarySearch(db.rec, num)
 	if err != nil {
 		return
 	}
-
-	// db.rec = nil
 
 	return
 }
@@ -105,7 +102,6 @@ func binarySearch(rec [][]string, num *big.Int) (ip *IP, s []string, err error) 
 	first, _ := new(big.Int).SetString(rec[mid][0], 0)
 	last, _ := new(big.Int).SetString(rec[mid][1], 0)
 
-	log.Println("len(rec)=", len(rec), "mid=", mid)
 	switch {
 	case mid == 0:
 		err = errors.New("not found")
