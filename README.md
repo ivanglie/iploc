@@ -1,6 +1,6 @@
 # iploc
 
-Service that provides translates IP address (IPv4 or IPv6) to country, region or state, city, latitude and longitude, ZIP/Postal code, and time zone.
+Web service for translates IP address (IPv4 or IPv6) to country, region or state, city, latitude and longitude, ZIP/Postal code, and time zone.
 
 ## Features
 
