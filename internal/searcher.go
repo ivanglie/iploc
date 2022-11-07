@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"strings"
 )
 
 type IP struct {
@@ -121,13 +122,8 @@ func binarySearch(rec [][]string, num *big.Int) (ip *IP, s []string, err error) 
 
 // convertIP address to num.
 func convertIP(address string) (num *big.Int, err error) {
-	for i := 0; i < len(address); i++ {
-		if address[i] == '.' {
-			// Convert IPV4 to IPV6
-			// from https://stackoverflow.com/questions/27398691/ip-database-from-ip2location-and-convert-ipv4-to-ipv6-in-perl
-			address = "::ffff:" + address
-			break
-		}
+	if strings.Contains(address, ".") {
+		address = "::ffff:" + address
 	}
 
 	ip := net.ParseIP(address)

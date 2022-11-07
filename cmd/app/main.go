@@ -45,7 +45,22 @@ func search(res http.ResponseWriter, req *http.Request) {
 
 	if db == nil {
 		err = errors.New("db is empty")
-		log.Printf("err: %v\n", err)
+		log.Printf("err: %v", err)
+		return
+	}
+
+	if !db.IsUpdated() {
+		log.Printf("service is updating now")
+
+		s := &internal.Resp{Status: http.StatusOK, Message: "The service is updating now. Please try again later."}
+		b, err := json.MarshalIndent(s, "", " ")
+		if err != nil {
+			log.Printf("err: %v", err)
+			http.Error(res, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintln(res, string(b))
 		return
 	}
 
@@ -55,7 +70,16 @@ func search(res http.ResponseWriter, req *http.Request) {
 
 	ip, err = db.Search(a)
 	if err != nil {
-		log.Printf("err: %v\n", err)
+		log.Printf("err: %v", err)
+
+		error := &internal.Resp{Status: http.StatusNotFound, Message: err.Error()}
+		b, err := json.MarshalIndent(error, "", " ")
+		if err != nil {
+			log.Printf("err: %v", err)
+			return
+		}
+
+		http.Error(res, string(b), http.StatusNotFound)
 		return
 	}
 
@@ -64,7 +88,8 @@ func search(res http.ResponseWriter, req *http.Request) {
 
 	b, err := json.MarshalIndent(ip, "", " ")
 	if err != nil {
-		log.Printf("err: %v\n", err)
+		log.Printf("err: %v", err)
+		http.Error(res, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
