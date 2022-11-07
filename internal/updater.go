@@ -21,12 +21,19 @@ const (
 )
 
 type DB struct {
-	code   string // database code.
-	zip    string // zip file name.
-	csv    string // csv file name.
-	size   int64  // csv file size.
-	chunks []string
-	rec    [][]string
+	sync.RWMutex
+	code      string // database code.
+	zip       string // zip file name.
+	csv       string // csv file name.
+	size      int64  // csv file size.
+	chunks    []string
+	rec       [][]string
+	isUpdated bool
+}
+
+type Resp struct {
+	Status  int    `json:"Status"`
+	Message string `json:"Message"`
 }
 
 func NewDB() *DB {
@@ -35,8 +42,15 @@ func NewDB() *DB {
 
 // String representation of *IP.
 func (db *DB) String() string {
-	return fmt.Sprintf("code: %s, zip: %s, csv: %s, size: %d (in bytes), chunks: %d, recs: %d\n",
-		db.code, db.zip, db.csv, db.size, len(db.chunks), len(db.rec))
+	return fmt.Sprintf("code: %s, zip: %s, csv: %s, size: %d (in bytes), chunks: %d, recs: %d\n, isUpdated: %t",
+		db.code, db.zip, db.csv, db.size, len(db.chunks), len(db.rec), db.isUpdated)
+}
+
+func (db *DB) IsUpdated() bool {
+	db.RLock()
+	defer db.RUnlock()
+
+	return db.isUpdated
 }
 
 // Update database: download zip file, unzip it to csv file, open and read it.
@@ -44,8 +58,12 @@ func (db *DB) Update() (err error) {
 	update := func() {
 		var err error
 
+		db.Lock()
+		db.isUpdated = false
+		db.Unlock()
+
 		log.Println(db.code, "downloading...")
-		// db.zip = db.code + ".zip" // debug
+		db.zip = db.code + ".zip" // TODO: debug
 		var s int64
 		db.zip, s, err = download(db.code)
 		if err != nil {
@@ -67,16 +85,14 @@ func (db *DB) Update() (err error) {
 		}
 		log.Printf("%s splitted (%d chunks)", db.csv, len(db.chunks))
 
+		db.Lock()
+		db.isUpdated = true
+		db.Unlock()
+
 		log.Printf("db=%v", db)
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		update()
-	}()
-	wg.Wait()
+	go update()
 
 	return
 }
