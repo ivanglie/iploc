@@ -22,13 +22,13 @@ const (
 
 type DB struct {
 	sync.RWMutex
-	code      string // database code.
-	zip       string // zip file name.
-	csv       string // csv file name.
-	size      int64  // csv file size.
-	chunks    []string
-	rec       [][]string
-	isUpdated bool
+	code       string // database code.
+	zip        string // zip file name.
+	csv        string // csv file name.
+	size       int64  // csv file size.
+	chunks     []string
+	rec        [][]string
+	isUpdating bool
 }
 
 type Resp struct {
@@ -42,15 +42,22 @@ func NewDB() *DB {
 
 // String representation of *IP.
 func (db *DB) String() string {
-	return fmt.Sprintf("code: %s, zip: %s, csv: %s, size: %d (in bytes), chunks: %d, recs: %d\n, isUpdated: %t",
-		db.code, db.zip, db.csv, db.size, len(db.chunks), len(db.rec), db.isUpdated)
+	return fmt.Sprintf("code: %s, zip: %s, csv: %s, size: %d (in bytes), chunks: %d, recs: %d, isUpdating: %t",
+		db.code, db.zip, db.csv, db.size, len(db.chunks), len(db.rec), db.isUpdating)
 }
 
 func (db *DB) IsUpdated() bool {
 	db.RLock()
 	defer db.RUnlock()
 
-	return db.isUpdated
+	return len(db.chunks) > 0
+}
+
+func (db *DB) IsUpdating() bool {
+	db.RLock()
+	defer db.RUnlock()
+
+	return db.isUpdating
 }
 
 // Update database: download zip file, unzip it to csv file, open and read it.
@@ -59,11 +66,11 @@ func (db *DB) Update() (err error) {
 		var err error
 
 		db.Lock()
-		db.isUpdated = false
+		db.isUpdating = true
 		db.Unlock()
 
 		log.Println(db.code, "downloading...")
-		db.zip = db.code + ".zip" // TODO: debug
+		// db.zip = db.code + ".zip" // TODO: debug
 		var s int64
 		db.zip, s, err = download(db.code)
 		if err != nil {
@@ -86,7 +93,7 @@ func (db *DB) Update() (err error) {
 		log.Printf("%s splitted (%d chunks)", db.csv, len(db.chunks))
 
 		db.Lock()
-		db.isUpdated = true
+		db.isUpdating = false
 		db.Unlock()
 
 		log.Printf("db=%v", db)
@@ -94,17 +101,6 @@ func (db *DB) Update() (err error) {
 
 	go update()
 
-	return
-}
-
-// open csv file specified by path.
-func open(path string) (file *os.File, err error) {
-	if len(path) == 0 {
-		err = errors.New("path is empty")
-		return
-	}
-
-	file, err = os.Open(path)
 	return
 }
 

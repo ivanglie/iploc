@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"net"
+	"os"
 	"strings"
 )
 
@@ -64,8 +65,14 @@ func (db *DB) Search(address string) (ip *IP, err error) {
 }
 
 func searchChunk(chunks []string, num *big.Int) (r [][]string, out []string, err error) {
+	if len(chunks) == 0 {
+		err = errors.New("chunks is empty")
+		return
+	}
+
+	var f *os.File
 	mid := len(chunks) / 2
-	f, err := open(chunks[mid])
+	f, err = os.Open(chunks[mid])
 	if err != nil {
 		return
 	}
