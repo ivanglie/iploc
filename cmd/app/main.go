@@ -120,6 +120,22 @@ func update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if db.IsUpdating() {
+		err := errors.New("service is updating now")
+		log.Printf("err: %v", err)
+
+		s := &internal.Resp{Status: http.StatusOK, Message: "The service is updating now. Please wait."}
+		b, err := json.MarshalIndent(s, "", " ")
+		if err != nil {
+			log.Printf("err: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
+	}
+
 	log.Println("updating")
 	fmt.Fprintln(w, "Updating...")
 

@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
-	scsv "github.com/tolik505/split-csv"
 )
 
 const (
@@ -86,7 +84,7 @@ func (db *DB) Update() (err error) {
 		log.Printf("%s unzipped (%d bytes)", db.csv, db.size)
 
 		log.Println(db.csv, "splitting...")
-		db.chunks, err = splitCSV(db.csv, db.size)
+		db.chunks, err = splitCSV(db.csv, 250)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -104,14 +102,8 @@ func (db *DB) Update() (err error) {
 	return
 }
 
-// splitCSV file specified by n on smaller chunks and return a filepaths of chunks.
-func splitCSV(n string, s int64) (chunks []string, err error) {
-	splitter := scsv.New()
-	splitter.FileChunkSize = int(s) / 200
-	splitter.WithHeader = false // copying of header in chunks is disabled
-	chunks, err = splitter.Split(n, "")
-
-	return
+func (db *DB) SetChunks(chunks []string) {
+	db.chunks = chunks
 }
 
 // unzipCSV file specified by n and return an extracted csv filename, size.
