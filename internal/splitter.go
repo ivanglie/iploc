@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// splitCSV file specified by n on smaller chunks and return a filepaths of chunks.
+// splitCSV file specified by p on smaller chunks and return a filepaths of chunks.
 func splitCSV(p string, chunks int) (s []string, err error) {
 	if len(p) == 0 {
 		err = errors.New("incorrect filename")
