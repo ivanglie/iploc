@@ -60,10 +60,20 @@ func splitCSV(p string, chunks int) (s []string, err error) {
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
+	reader := bufio.NewReader(f)
+	for {
+		line := ""
+		line, err = reader.ReadString('\n')
+		switch {
+		case err == io.EOF:
+			err = nil
+			return
+		case err != nil:
+			return
+		}
+
 		if len(a) < linesInChunck {
-			a = append(a, scanner.Text())
+			a = append(a, line)
 		}
 
 		if len(a) == linesInChunck {
@@ -87,6 +97,4 @@ func splitCSV(p string, chunks int) (s []string, err error) {
 			s = append(s, np)
 		}
 	}
-
-	return
 }

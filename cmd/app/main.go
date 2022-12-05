@@ -41,6 +41,8 @@ func main() {
 }
 
 func search(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+
 	var ip *internal.IP
 	var err error
 
