@@ -1,8 +1,8 @@
 package internal
 
 import (
-	"bufio"
 	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
@@ -51,7 +51,7 @@ func splitCSV(p string, chunks int) (s []string, err error) {
 
 	linesInChunck := lines / chunks
 	i := 0
-	a := []string{}
+	recs := [][]string{}
 
 	var f *os.File
 	f, err = os.Open(p)
@@ -60,40 +60,43 @@ func splitCSV(p string, chunks int) (s []string, err error) {
 	}
 	defer f.Close()
 
-	reader := bufio.NewReader(f)
+	reader := csv.NewReader(f)
 	for {
-		line := ""
-		line, err = reader.ReadString('\n')
-		switch {
-		case err == io.EOF:
-			err = nil
-			return
-		case err != nil:
+		rec := []string{}
+		rec, err = reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+				return
+			}
+
+			log.Println("err:", err)
 			return
 		}
 
-		if len(a) < linesInChunck {
-			a = append(a, line)
+		if len(recs) < linesInChunck {
+			recs = append(recs, rec)
 		}
 
-		if len(a) == linesInChunck {
+		if len(recs) == linesInChunck {
 			i++
 			np := fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i)
 
 			var nf *os.File
 			nf, err = os.Create(np)
 			if err != nil {
+				log.Println("failed creating file:", err)
+			}
+
+			writer := csv.NewWriter(nf)
+			err = writer.WriteAll(recs)
+			if err != nil {
+				log.Println("failed writing in file:", err)
 				return
 			}
+			nf.Close()
 
-			for _, v := range a {
-				_, err = nf.WriteString(v + "\n")
-				if err != nil {
-					return
-				}
-			}
-
-			a = []string{}
+			recs = [][]string{}
 			s = append(s, np)
 		}
 	}
