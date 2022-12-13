@@ -84,7 +84,7 @@ func (db *DB) Update() (err error) {
 		log.Printf("%s unzipped (%d bytes)", db.csv, db.size)
 
 		log.Println(db.csv, "splitting...")
-		db.chunks, err = splitCSV(db.csv, 250)
+		db.chunks, err = splitCSV(db.csv, db.size/200)
 		if err != nil {
 			log.Panic(err)
 		}
