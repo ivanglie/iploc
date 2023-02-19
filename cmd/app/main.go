@@ -52,7 +52,12 @@ func search(w http.ResponseWriter, r *http.Request) {
 	a := r.URL.Query().Get("ip")
 	log.Println("a=", a)
 
-	loc, _ := iploc.Search(a, s)
+	loc, err := iploc.Search(a, s)
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
+		return
+	}
 	log.Println("loc=", loc)
 
 	log.Println("Search completed")
@@ -106,8 +111,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("<-ch=", <-ch)
 	log.Println("Download completed")
-
-	// d, _, _ = utils.Download(".", token)
 
 	fmt.Fprintln(w, d)
 }
