@@ -14,7 +14,7 @@ var data [][]string
 func setupTest(t *testing.T) {
 	t.Log("Setup test")
 
-	f, err := os.Open("../../test/data/data.csv")
+	f, err := os.Open("../../test/data/DATA.CSV")
 	if err != nil {
 		t.Logf("Unable to read input file:\n%v", err)
 	}
