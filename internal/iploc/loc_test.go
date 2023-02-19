@@ -32,7 +32,7 @@ func teardownTest(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	loc, err := Search("8.8.8.8", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	loc, err := Search("8.8.8.8", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, err)
 	assert.NotNil(t, loc)
 	assert.NotNil(t, loc.Properties)
@@ -46,7 +46,7 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, "-07:00", loc.Properties[TimeZone])
 
 	// Errors
-	loc, err = Search("8.8.8.", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	loc, err = Search("8.8.8.", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "address ::ffff:8.8.8. is incorrect IP")
 
@@ -54,31 +54,31 @@ func TestSearch(t *testing.T) {
 	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "chunks is empty or not found")
 
-	loc, err = Search("9.9.9.9", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	loc, err = Search("9.9.9.9", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "281470833330441 not found")
 }
 
 func Test_searchChunk(t *testing.T) {
 	c, err := searchChunk(big.NewInt(281470816487424),
-		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+		[]string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, err)
 	assert.NotNil(t, c)
 
 	c, err = searchChunk(big.NewInt(281470816486912),
-		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+		[]string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, err)
 	assert.NotNil(t, c)
 
 	n, _ := new(big.Int).SetString("42541956123769884654463883030277652480", 0)
-	c, err = searchChunk(n, []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	c, err = searchChunk(n, []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, err)
 	assert.NotNil(t, c)
 
 	// Errors
 	// Not found
 	c, err = searchChunk(big.NewInt(281470816482303),
-		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+		[]string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, c)
 	assert.Equal(t, err.Error(), "chunks is empty or not found")
 
@@ -88,13 +88,13 @@ func Test_searchChunk(t *testing.T) {
 	assert.Equal(t, err.Error(), "chunks is empty or not found")
 
 	// Incorrect format
-	c, err = searchChunk(big.NewInt(281470816487424), []string{"../../test/data/DBincorrect.csv"})
+	c, err = searchChunk(big.NewInt(281470816487424), []string{"../../test/data/DBincorrect.CSV"})
 	assert.Nil(t, c)
 	assert.Equal(t, err.Error(), "record on line 5: wrong number of fields")
 
 	// No such file or directory
 	c, err = searchChunk(big.NewInt(281470816487424),
-		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002csv", "../../test/data/DB_0003.csv"})
+		[]string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002csv", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, c)
 	assert.Equal(t, err.Error(), "open ../../test/data/DB_0002csv: no such file or directory")
 }
