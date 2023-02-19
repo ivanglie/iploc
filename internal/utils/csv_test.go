@@ -31,7 +31,7 @@ func TestUnzipCSV(t *testing.T) {
 
 	// Test that UnzipCSV handles invalid input file path
 	csv, err = UnzipCSV("")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, csv)
 
 	// Test that UnzipCSV handles invalid zip file path
@@ -49,7 +49,7 @@ func TestSplitCSV(t *testing.T) {
 	// Test incorrect filename
 	s, err = SplitCSV("", 1024)
 	assert.Nil(t, s)
-	assert.EqualError(t, err, "incorrect filename")
+	assert.EqualError(t, err, "incorrect path")
 
 	// Test file not found
 	s, err = SplitCSV("not_found.csv", 1024)

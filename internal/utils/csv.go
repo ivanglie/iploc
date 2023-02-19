@@ -33,7 +33,7 @@ func (csv *CSV) String() string {
 // SplitCSV file specified by p on smaller chunks and return a filepaths of chunks.
 func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 	if len(p) == 0 {
-		err = errors.New("incorrect filename")
+		err = errors.New("incorrect path")
 		return
 	}
 
@@ -83,9 +83,10 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 	return
 }
 
-// UnzipCSV file specified by z and return an extracted csv filename, size.
+// UnzipCSV file specified by p and return an extracted csv filename, size.
 func UnzipCSV(p string) (csv *CSV, err error) {
 	if len(p) == 0 {
+		err = errors.New("incorrect path")
 		return
 	}
 
@@ -110,7 +111,7 @@ func UnzipCSV(p string) (csv *CSV, err error) {
 		d := filepath.Dir(p)
 		csv.File = filepath.Join(d, f.Name)
 		if !strings.HasPrefix(csv.File, filepath.Clean(d)) {
-			err = fmt.Errorf("invalid file path: %s", csv.File)
+			err = fmt.Errorf("invalid path: %s", csv.File)
 			return
 		}
 
@@ -148,6 +149,7 @@ func UnzipCSV(p string) (csv *CSV, err error) {
 // Download IP2Location database specified by code and return a zip filename, size.
 func Download(p, token string) (d string, size int64, err error) {
 	if len(p) == 0 {
+		err = errors.New("incorrect path")
 		return
 	}
 
