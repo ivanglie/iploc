@@ -29,11 +29,6 @@ func init() {
 	if len(port) == 0 {
 		log.Fatalf("incorrect port: %s\n", port)
 	}
-
-	token = os.Getenv("IP2LOCATION_TOKEN")
-	if len(port) == 0 {
-		log.Fatalf("incorrect token: %s\n", token)
-	}
 }
 
 func main() {
@@ -52,18 +47,34 @@ func main() {
 }
 
 func search(w http.ResponseWriter, r *http.Request) {
+	log.Println("Searching...")
+
 	a := r.URL.Query().Get("ip")
+	log.Println("a=", a)
+
 	loc, _ := iploc.Search(a, s)
+	log.Println("loc=", loc)
+
+	log.Println("Search completed")
+
 	fmt.Fprintln(w, loc)
 }
 
 func prepare(w http.ResponseWriter, r *http.Request) {
+	log.Println("Preparing...")
+
 	csv, _ = utils.UnzipCSV(d)
+	log.Println("csv=", csv)
+
 	s, _ = utils.SplitCSV(csv.File, csv.Size/200)
+	log.Println("s=", s)
+
+	log.Println("Prepare completed")
 	fmt.Fprintln(w, csv, s)
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
+	log.Println("Downloading...")
 	// d = "/Users/alexivnv/Documents/code/go/iploc/cmd/app/DB11LITEIPV6.zip"
 
 	decoder := json.NewDecoder(r.Body)
@@ -75,8 +86,18 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token = ip2location.Token
-	log.Println(ip2location.Token)
+	log.Println("token=", ip2location.Token)
 
-	d, _, _ = utils.Download(".", token)
+	ch := make(chan string)
+	go func(p, t string) {
+		d, _, err = utils.Download(".", token)
+		ch <- d
+	}(".", token)
+
+	log.Println("<-ch=", <-ch)
+	log.Println("Download completed")
+
+	// d, _, _ = utils.Download(".", token)
+
 	fmt.Fprintln(w, d)
 }
