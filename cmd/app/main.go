@@ -16,7 +16,6 @@ var (
 	port  string
 	token string
 	d     string
-	csv   *utils.CSV
 	s     []string
 )
 
@@ -67,6 +66,11 @@ func search(w http.ResponseWriter, r *http.Request) {
 
 func prepare(w http.ResponseWriter, r *http.Request) {
 	log.Println("Preparing...")
+
+	// debug
+	if len(d) == 0 {
+		d = "/tmp/DB11LITEIPV6.zip"
+	}
 
 	csv, err := utils.UnzipCSV(d)
 	if err != nil {
