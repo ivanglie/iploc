@@ -33,6 +33,7 @@ func teardownTest(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	loc, err := Search("8.8.8.8", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	assert.Nil(t, err)
 	assert.NotNil(t, loc)
 	assert.NotNil(t, loc.Properties)
 	assert.Equal(t, "US", loc.Properties[Code])
@@ -43,7 +44,6 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, "-122.078515", loc.Properties[Longitude])
 	assert.Equal(t, "94043", loc.Properties[ZipCode])
 	assert.Equal(t, "-07:00", loc.Properties[TimeZone])
-	assert.Nil(t, err)
 
 	// Errors
 	loc, err = Search("8.8.8.", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
@@ -62,18 +62,18 @@ func TestSearch(t *testing.T) {
 func Test_searchChunk(t *testing.T) {
 	c, err := searchChunk(big.NewInt(281470816487424),
 		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
-	assert.NotNil(t, c)
 	assert.Nil(t, err)
+	assert.NotNil(t, c)
 
 	c, err = searchChunk(big.NewInt(281470816486912),
 		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
-	assert.NotNil(t, c)
 	assert.Nil(t, err)
+	assert.NotNil(t, c)
 
 	n, _ := new(big.Int).SetString("42541956123769884654463883030277652480", 0)
 	c, err = searchChunk(n, []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
-	assert.NotNil(t, c)
 	assert.Nil(t, err)
+	assert.NotNil(t, c)
 
 	// Errors
 	// Not found
