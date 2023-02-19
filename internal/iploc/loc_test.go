@@ -33,6 +33,8 @@ func teardownTest(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	loc, err := Search("8.8.8.8", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	assert.NotNil(t, loc)
+	assert.NotNil(t, loc.Properties)
 	assert.Equal(t, "US", loc.Properties[Code])
 	assert.Equal(t, "United States of America", loc.Properties[Country])
 	assert.Equal(t, "California", loc.Properties[Region])
@@ -42,19 +44,18 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, "94043", loc.Properties[ZipCode])
 	assert.Equal(t, "-07:00", loc.Properties[TimeZone])
 	assert.Nil(t, err)
-}
 
-func TestSearch_Errors(t *testing.T) {
-	ip, err := Search("8.8.8.", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
-	assert.Nil(t, ip)
+	// Errors
+	loc, err = Search("8.8.8.", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "address ::ffff:8.8.8. is incorrect IP")
 
-	ip, err = Search("8.8.8.8", []string{})
-	assert.Nil(t, ip)
+	loc, err = Search("8.8.8.8", []string{})
+	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "chunks is empty or not found")
 
-	ip, err = Search("9.9.9.9", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
-	assert.Nil(t, ip)
+	loc, err = Search("9.9.9.9", []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
+	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "281470833330441 not found")
 }
 
@@ -73,11 +74,10 @@ func Test_searchChunk(t *testing.T) {
 	c, err = searchChunk(n, []string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
 	assert.NotNil(t, c)
 	assert.Nil(t, err)
-}
 
-func Test_searchChunk_Errors(t *testing.T) {
+	// Errors
 	// Not found
-	c, err := searchChunk(big.NewInt(281470816482303),
+	c, err = searchChunk(big.NewInt(281470816482303),
 		[]string{"../../test/data/DB_0001.csv", "../../test/data/DB_0002.csv", "../../test/data/DB_0003.csv"})
 	assert.Nil(t, c)
 	assert.Equal(t, err.Error(), "chunks is empty or not found")
@@ -105,6 +105,8 @@ func Test_searchByNum_IPv4(t *testing.T) {
 
 	n, _ := convertIP("8.8.8.8")
 	loc, _ := searchByNum(n, data)
+	assert.NotNil(t, loc)
+	assert.NotNil(t, loc.Properties)
 	assert.Equal(t, "US", loc.Properties[Code])
 	assert.Equal(t, "United States of America", loc.Properties[Country])
 	assert.Equal(t, "California", loc.Properties[Region])
@@ -121,6 +123,8 @@ func Test_searchByNum_IPv6(t *testing.T) {
 
 	n, _ := convertIP("2001:4860:4860:0:0:0:0:8888")
 	loc, _ := searchByNum(n, data)
+	assert.NotNil(t, loc)
+	assert.NotNil(t, loc.Properties)
 	assert.Equal(t, "GB", loc.Properties[Code])
 	assert.Equal(t, "United Kingdom of Great Britain and Northern Ireland", loc.Properties[Country])
 	assert.Equal(t, "England", loc.Properties[Region])
