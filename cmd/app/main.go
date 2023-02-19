@@ -63,10 +63,20 @@ func search(w http.ResponseWriter, r *http.Request) {
 func prepare(w http.ResponseWriter, r *http.Request) {
 	log.Println("Preparing...")
 
-	csv, _ = utils.UnzipCSV(d)
+	csv, err := utils.UnzipCSV(d)
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
+		return
+	}
 	log.Println("csv=", csv)
 
 	s, _ = utils.SplitCSV(csv.File, csv.Size/200)
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
+		return
+	}
 	log.Println("s=", s)
 
 	log.Println("Prepare completed")
