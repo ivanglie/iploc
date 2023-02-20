@@ -8,29 +8,10 @@ Web service that identifies the country, region or state, city, latitude and lon
 
 * Procedure for downloading a database
 
-## API
+## Example
 
-* Download DB
-```code
-POST http://localhost:9000/download HTTP/1.1
-content-type: application/json
+Search location:
 
-{
-    "token": "YOUR-TOKEN"
-}
-```
-
-* Unzip file
-```code
-GET http://localhost:9000/unzip
-```
-
-* Split CSV
-```code
-GET http://localhost:9000/split
-```
-
-* Search location
 ```code
 GET http://localhost:9000/search?ip=8.8.8.8
 ```
@@ -48,6 +29,7 @@ Output:
   "TimeZone": "-08:00"
 }
 ```
+See [requests.rest](./test/requests.rest).
 
 ## Acknowledgment
 
