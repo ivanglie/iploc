@@ -1,0 +1,7 @@
+.DS_Store
+.vscode/
+vendor/
+*.sh
+*IPV6*.csv
+*IPV6*.zip
+/test/data/DB.csv
