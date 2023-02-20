@@ -140,23 +140,22 @@ func UnzipCSV(p string) (csv *CSV, err error) {
 		}
 		defer r.Close()
 
-		log.Println("r=", r)
+		log.Println("reader=", r)
 
 		var w int64
 		w, err = io.Copy(out, r)
+		log.Println("w=", w, "err=", err)
 		if err != nil {
 			log.Println("err=", err)
 			return
 		}
 
-		log.Println("w=", w)
-
 		var info os.FileInfo
-		if info, err = out.Stat(); err != nil {
+		info, err = out.Stat()
+		log.Println("info=", info, "err=", err)
+		if err != nil {
 			return
 		}
-
-		log.Println("info=", info)
 
 		csv.Size = info.Size()
 	}
