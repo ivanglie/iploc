@@ -95,6 +95,8 @@ func UnzipCSV(p string) (csv *CSV, err error) {
 		return
 	}
 
+	log.Println("p=", p)
+
 	var r *zip.ReadCloser
 	r, err = zip.OpenReader(p)
 	if err != nil {
@@ -102,13 +104,18 @@ func UnzipCSV(p string) (csv *CSV, err error) {
 	}
 	defer r.Close()
 
+	log.Println("r=", r)
+
 	for _, f := range r.File {
+		log.Println("f=", f)
+		log.Println("f.Name=", f.Name)
 		if !strings.Contains(f.Name, ".CSV") {
 			continue
 		}
 
 		csv = &CSV{}
 		d := filepath.Dir(p)
+		log.Println("d=", d)
 		csv.File = filepath.Join(d, f.Name)
 		if !strings.HasPrefix(csv.File, filepath.Clean(d)) {
 			err = fmt.Errorf("invalid path: %s", csv.File)
