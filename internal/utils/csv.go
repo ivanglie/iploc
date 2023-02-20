@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -84,7 +85,7 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 }
 
 // UnzipCSV file specified by p and return an extracted csv filename, size.
-func UnzipCSV(p string) (csv *CSV, err error) {
+func UnzipCSV(p string) (c *CSV, err error) {
 	if len(p) == 0 {
 		err = errors.New("incorrect path")
 		return
@@ -95,69 +96,46 @@ func UnzipCSV(p string) (csv *CSV, err error) {
 		return
 	}
 
-	log.Println("p=", p)
-
-	var r *zip.ReadCloser
-	r, err = zip.OpenReader(p)
+	zr, err := zip.OpenReader(p)
 	if err != nil {
 		return
 	}
-	defer r.Close()
+	defer zr.Close()
 
-	log.Println("r=", r)
-
-	for _, f := range r.File {
-		log.Println("f=", f)
-		log.Println("f.Name=", f.Name)
-		if !strings.Contains(f.Name, ".CSV") {
+	for _, f := range zr.File {
+		if f.Name[len(f.Name)-4:] != ".CSV" {
 			continue
 		}
 
-		csv = &CSV{}
-		d := filepath.Dir(p)
-		log.Println("d=", d)
-		csv.File = filepath.Join(d, f.Name)
-		if !strings.HasPrefix(csv.File, filepath.Clean(d)) {
-			err = fmt.Errorf("invalid path: %s", csv.File)
-			return
-		}
-
-		if f.FileInfo().IsDir() {
+		in, err := f.Open()
+		if err != nil {
+			log.Println(err)
 			continue
 		}
+		defer in.Close()
 
-		var out *os.File
-		if out, err = os.OpenFile(csv.File, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode()); err != nil {
-			return
+		out, err := os.Create(filepath.Join(filepath.Dir(p), f.Name))
+		if err != nil {
+			log.Println(err)
+			continue
 		}
 		defer out.Close()
 
-		log.Println("out=", out)
-
-		var r io.ReadCloser
-		if r, err = f.Open(); err != nil {
-			return
-		}
-		defer r.Close()
-
-		log.Println("reader=", r)
-
-		var w int64
-		w, err = io.Copy(out, r)
-		log.Println("w=", w, "err=", err)
+		r, _ := ioutil.ReadAll(in)
+		err = ioutil.WriteFile(out.Name(), r, fs.ModePerm)
 		if err != nil {
-			log.Println("err=", err)
-			return
+			log.Println(err)
+			continue
 		}
 
 		var info os.FileInfo
 		info, err = out.Stat()
-		log.Println("info=", info, "err=", err)
 		if err != nil {
-			return
+			log.Println(err)
+			continue
 		}
 
-		csv.Size = info.Size()
+		c = &CSV{File: info.Name(), Size: info.Size()}
 	}
 
 	return
