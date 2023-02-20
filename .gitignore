@@ -3,5 +3,7 @@
 vendor/
 *.env
 *.sh
-*.csv
-*.zip
+*.rest
+*IPV6*.csv
+*IPV6*.zip
+/test/data/DB.csv

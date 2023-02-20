@@ -7,28 +7,35 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/ivanglie/iploc/internal"
+	"github.com/ivanglie/iploc/internal/iploc"
+	"github.com/ivanglie/iploc/internal/utils"
 )
 
 var (
-	port string
-	db   *internal.DB
+	port  string
+	token string
+	d     string
+	csv   *utils.CSV
+	s     []string
 )
+
+type IP2Location struct {
+	Token string `json:"token"`
+}
 
 func init() {
 	port = os.Getenv("PORT")
 	if len(port) == 0 {
 		log.Fatalf("incorrect port: %s\n", port)
 	}
-
-	db = internal.NewDB()
 }
 
 func main() {
 	http.HandleFunc("/search", search)
-	http.HandleFunc("/update", update)
+	http.HandleFunc("/split", split)
+	http.HandleFunc("/unzip", unzip)
+	http.HandleFunc("/download", download)
 
 	log.Printf("Listening on port: %s", port)
 	err := http.ListenAndServe(":"+port, nil)
@@ -41,103 +48,84 @@ func main() {
 }
 
 func search(w http.ResponseWriter, r *http.Request) {
-	var ip *internal.IP
-	var err error
-
-	if db == nil {
-		err = errors.New("db is empty")
-		log.Printf("err: %v", err)
-		return
-	}
-
-	if !db.IsUpdated() {
-		if db.IsUpdating() {
-			log.Printf("service is updating now")
-
-			s := &internal.Resp{Status: http.StatusOK, Message: "The service is updating now. Please try again later."}
-			b, err := json.MarshalIndent(s, "", " ")
-			if err != nil {
-				log.Printf("err: %v", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			fmt.Fprintln(w, string(b))
-			return
-		} else {
-			log.Printf("service is unavailable")
-
-			s := &internal.Resp{Status: http.StatusServiceUnavailable, Message: "The service is unavailable. Please update service."}
-			b, err := json.MarshalIndent(s, "", " ")
-			if err != nil {
-				log.Printf("err: %v", err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			http.Error(w, string(b), http.StatusServiceUnavailable)
-			return
-		}
-	}
+	log.Println("Searching...")
 
 	a := r.URL.Query().Get("ip")
+	log.Println("a=", a)
 
-	t := time.Now()
-
-	ip, err = db.Search(a)
+	loc, err := iploc.Search(a, s)
 	if err != nil {
-		log.Printf("err: %v", err)
-
-		error := &internal.Resp{Status: http.StatusNotFound, Message: err.Error()}
-		b, err := json.MarshalIndent(error, "", " ")
-		if err != nil {
-			log.Printf("err: %v", err)
-			return
-		}
-
-		http.Error(w, string(b), http.StatusNotFound)
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
 		return
 	}
+	log.Println("loc=", loc)
 
-	d := time.Since(t)
-	log.Printf("%s is %v, elapsed time: %v\n", a, ip, d)
+	log.Println("Search completed")
 
-	b, err := json.MarshalIndent(ip, "", " ")
-	if err != nil {
-		log.Printf("err: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprintln(w, string(b))
+	fmt.Fprintln(w, loc)
 }
 
-func update(w http.ResponseWriter, r *http.Request) {
-	if db == nil {
-		err := errors.New("db is empty")
-		log.Printf("err: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+func split(w http.ResponseWriter, r *http.Request) {
+	log.Println("Spliting...")
+
+	var err error
+	s, err = utils.SplitCSV(csv.File, csv.Size/200)
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
 		return
 	}
 
-	if db.IsUpdating() {
-		err := errors.New("service is updating now")
-		log.Printf("err: %v", err)
+	log.Println("Split completed")
+	fmt.Fprintln(w, s)
+}
 
-		s := &internal.Resp{Status: http.StatusOK, Message: "The service is updating now. Please wait."}
-		b, err := json.MarshalIndent(s, "", " ")
-		if err != nil {
-			log.Printf("err: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+func unzip(w http.ResponseWriter, r *http.Request) {
+	log.Println("Unziping...")
 
-		http.Error(w, string(b), http.StatusInternalServerError)
+	// debug
+	if len(d) == 0 {
+		d = "/tmp/DB11LITEIPV6.zip"
+	}
+
+	var err error
+	csv, err = utils.UnzipCSV(d)
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
 		return
 	}
 
-	log.Println("updating")
-	fmt.Fprintln(w, "Updating...")
+	log.Println("Unzip completed")
+	fmt.Fprintln(w, csv)
+}
 
-	db.Update()
+func download(w http.ResponseWriter, r *http.Request) {
+	log.Println("Downloading...")
+
+	// debug
+	// d = "/Users/alexivnv/Documents/code/go/iploc/cmd/app/DB11LITEIPV6.zip"
+
+	decoder := json.NewDecoder(r.Body)
+
+	var ip2location *IP2Location
+	err := decoder.Decode(&ip2location)
+	if err != nil {
+		panic(err)
+	}
+
+	token = ip2location.Token
+	log.Println("token=", ip2location.Token)
+
+	ch := make(chan string)
+	go func(p, t string) {
+		d, _, err = utils.Download(".", token)
+		ch <- d
+	}(".", token)
+
+	log.Println("<-ch=", <-ch)
+
+	log.Println("Download completed")
+	fmt.Fprintln(w, d)
 }
