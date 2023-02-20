@@ -105,7 +105,9 @@ func download(w http.ResponseWriter, r *http.Request) {
 	log.Println("Downloading...")
 
 	// debug
-	// d = "/Users/alexivnv/Documents/code/go/iploc/cmd/app/DB11LITEIPV6.zip"
+	if len(d) == 0 {
+		d = "/tmp/DB11LITEIPV6.zip"
+	}
 
 	decoder := json.NewDecoder(r.Body)
 
