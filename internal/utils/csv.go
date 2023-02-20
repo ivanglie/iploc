@@ -2,12 +2,12 @@ package utils
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -121,11 +121,19 @@ func UnzipCSV(p string) (c *CSV, err error) {
 		}
 		defer out.Close()
 
-		r, _ := ioutil.ReadAll(in)
-		err = ioutil.WriteFile(out.Name(), r, fs.ModePerm)
-		if err != nil {
-			log.Println(err)
-			continue
+		r := bufio.NewReader(in)
+		for {
+			var line []byte
+			line, _, err = r.ReadLine()
+			if err == io.EOF {
+				break
+			}
+
+			_, err = fmt.Fprintln(out, string(line))
+			if err != nil {
+				log.Println(err)
+				continue
+			}
 		}
 
 		var info os.FileInfo
