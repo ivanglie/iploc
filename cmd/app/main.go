@@ -16,6 +16,7 @@ var (
 	port  string
 	token string
 	d     string
+	csv   *utils.CSV
 	s     []string
 )
 
@@ -32,7 +33,8 @@ func init() {
 
 func main() {
 	http.HandleFunc("/search", search)
-	http.HandleFunc("/prepare", prepare)
+	http.HandleFunc("/split", split)
+	http.HandleFunc("/unzip", unzip)
 	http.HandleFunc("/download", download)
 
 	log.Printf("Listening on port: %s", port)
@@ -64,36 +66,45 @@ func search(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, loc)
 }
 
-func prepare(w http.ResponseWriter, r *http.Request) {
-	log.Println("Preparing...")
+func split(w http.ResponseWriter, r *http.Request) {
+	log.Println("Spliting...")
+
+	var err error
+	s, err = utils.SplitCSV(csv.File, csv.Size/200)
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
+		return
+	}
+
+	log.Println("Split completed")
+	fmt.Fprintln(w, s)
+}
+
+func unzip(w http.ResponseWriter, r *http.Request) {
+	log.Println("Unziping...")
 
 	// debug
 	if len(d) == 0 {
 		d = "/tmp/DB11LITEIPV6.zip"
 	}
 
-	csv, err := utils.UnzipCSV(d)
+	var err error
+	csv, err = utils.UnzipCSV(d)
 	if err != nil {
 		log.Println("err=", err)
 		fmt.Fprintln(w, err)
 		return
 	}
-	log.Println("csv=", csv)
 
-	s, _ = utils.SplitCSV(csv.File, csv.Size/200)
-	if err != nil {
-		log.Println("err=", err)
-		fmt.Fprintln(w, err)
-		return
-	}
-	log.Println("s=", s)
-
-	log.Println("Prepare completed")
-	fmt.Fprintln(w, csv, s)
+	log.Println("Unzip completed")
+	fmt.Fprintln(w, csv)
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
 	log.Println("Downloading...")
+
+	// debug
 	// d = "/Users/alexivnv/Documents/code/go/iploc/cmd/app/DB11LITEIPV6.zip"
 
 	decoder := json.NewDecoder(r.Body)
@@ -114,7 +125,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}(".", token)
 
 	log.Println("<-ch=", <-ch)
-	log.Println("Download completed")
 
+	log.Println("Download completed")
 	fmt.Fprintln(w, d)
 }
