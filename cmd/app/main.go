@@ -77,6 +77,8 @@ func split(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("s=", s)
+
 	log.Println("Split completed")
 	fmt.Fprintln(w, s)
 }
@@ -96,6 +98,8 @@ func unzip(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, err)
 		return
 	}
+
+	log.Println(csv)
 
 	log.Println("Unzip completed")
 	fmt.Fprintln(w, csv)
@@ -120,13 +124,15 @@ func download(w http.ResponseWriter, r *http.Request) {
 	token = ip2location.Token
 	log.Println("token=", ip2location.Token)
 
-	ch := make(chan string)
+	fileCh := make(chan string)
+	errCh := make(chan error)
 	go func(p, t string) {
 		d, _, err = utils.Download(".", token)
-		ch <- d
+		fileCh <- d
+		errCh <- err
 	}(".", token)
 
-	log.Println("<-ch=", <-ch)
+	log.Println("file=", <-fileCh, "err=", <-errCh)
 
 	log.Println("Download completed")
 	fmt.Fprintln(w, d)
