@@ -10,7 +10,7 @@ import (
 
 func TestCSV_String(t *testing.T) {
 	csv := &CSV{File: "file1.CSV", Size: 1024}
-	assert.Equal(t, `{"CSV":{"File":"file1.CSV","Size":1024}}`, csv.String())
+	assert.Equal(t, `{"File":"file1.CSV","Size":1024}`, csv.String())
 }
 
 func TestUnzipCSV(t *testing.T) {
