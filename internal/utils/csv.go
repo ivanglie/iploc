@@ -27,8 +27,7 @@ type CSV struct {
 
 // String representation of *IP.
 func (csv *CSV) String() string {
-	return fmt.Sprintf(
-		`{"CSV":{"File":"%s","Size":%d}}`, csv.File, csv.Size)
+	return fmt.Sprintf(`{"File":"%s","Size":%d}`, csv.File, csv.Size)
 }
 
 // SplitCSV file specified by p on smaller chunks and return a filepaths of chunks.
@@ -85,19 +84,18 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 }
 
 // UnzipCSV file specified by p and return an extracted csv filename, size.
-func UnzipCSV(p string) (c *CSV, err error) {
-	if len(p) == 0 {
-		err = errors.New("incorrect path")
+func UnzipCSV(path string) (c *CSV, err error) {
+	if len(path) == 0 {
+		err = fmt.Errorf("incorrect path %s", path)
 		return
 	}
 
-	p, err = filepath.Abs(p)
-	if err != nil {
+	if path, err = filepath.Abs(path); err != nil {
 		return
 	}
 
-	zr, err := zip.OpenReader(p)
-	if err != nil {
+	var zr *zip.ReadCloser
+	if zr, err = zip.OpenReader(path); err != nil {
 		return
 	}
 	defer zr.Close()
@@ -107,16 +105,16 @@ func UnzipCSV(p string) (c *CSV, err error) {
 			continue
 		}
 
-		in, err := f.Open()
-		if err != nil {
-			log.Println(err)
+		var in io.ReadCloser
+		if in, err = f.Open(); err != nil {
 			continue
 		}
 		defer in.Close()
 
-		out, err := os.Create(filepath.Join(filepath.Dir(p), f.Name))
-		if err != nil {
-			log.Println(err)
+		name := filepath.Join(filepath.Dir(path), f.Name)
+
+		var out *os.File
+		if out, err = os.Create(name); err != nil {
 			continue
 		}
 		defer out.Close()
@@ -124,14 +122,11 @@ func UnzipCSV(p string) (c *CSV, err error) {
 		r := bufio.NewReader(in)
 		for {
 			var line []byte
-			line, _, err = r.ReadLine()
-			if err == io.EOF {
+			if line, _, err = r.ReadLine(); err == io.EOF {
 				break
 			}
 
-			_, err = fmt.Fprintln(out, string(line))
-			if err != nil {
-				log.Println(err)
+			if _, err = fmt.Fprintln(out, string(line)); err != nil {
 				continue
 			}
 		}
@@ -139,54 +134,49 @@ func UnzipCSV(p string) (c *CSV, err error) {
 		var info os.FileInfo
 		info, err = out.Stat()
 		if err != nil {
-			log.Println(err)
 			continue
 		}
 
-		c = &CSV{File: info.Name(), Size: info.Size()}
+		c = &CSV{File: name, Size: info.Size()}
 	}
 
 	return
 }
 
-// Download IP2Location database specified by code and return a zip filename, size.
-func Download(p, token string) (d string, size int64, err error) {
-	if len(p) == 0 {
-		err = errors.New("incorrect path")
+// Download IP2Location database specified by token and return a name, size of zip file.
+func Download(token, path string) (name string, size int64, err error) {
+	if len(path) == 0 {
+		err = fmt.Errorf("incorrect path %s", path)
 		return
 	}
 
-	url := fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, "DB11LITEIPV6")
-	resp, err := http.Get(url)
-	if err != nil {
+	var resp *http.Response
+	if resp, err = http.Get(fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code)); err != nil {
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = errors.New("bad status: " + resp.Status)
+		err = fmt.Errorf("bad status: %s", resp.Status)
 		return
 	}
 
-	p, err = filepath.Abs(filepath.Dir(p))
-	if err != nil {
+	if name, err = filepath.Abs(filepath.Join(filepath.Dir(path), code+".zip")); err != nil {
 		return
 	}
 
-	d = filepath.Join(p, code+".zip")
-	out, err := os.OpenFile(d, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fs.ModeAppend)
-	if err != nil {
+	var file *os.File
+	if file, err = os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fs.ModeAppend); err != nil {
 		return
 	}
-	defer out.Close()
+	defer file.Close()
 
-	// if _, err = io.Copy(out, io.NopCloser(bytes.NewReader([]byte("foo")))); err != nil {
-	if _, err = io.Copy(out, resp.Body); err != nil {
+	if _, err = io.Copy(file, resp.Body); err != nil {
 		return
 	}
 
 	var info os.FileInfo
-	if info, err = out.Stat(); err != nil {
+	if info, err = file.Stat(); err != nil {
 		return
 	}
 
