@@ -1,8 +1,8 @@
 .DS_Store
 .vscode/
 vendor/
-*.sh
-*.debug
+*debug*
+*upload*
 *IPV6*.csv
 *IPV6*.zip
 /test/data/DB.csv

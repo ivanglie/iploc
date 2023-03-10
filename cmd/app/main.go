@@ -127,7 +127,7 @@ func download(w http.ResponseWriter, r *http.Request) {
 	fileCh := make(chan string)
 	errCh := make(chan error)
 	go func(p, t string) {
-		d, _, err = utils.Download(".", token)
+		d, _, err = utils.Download(token, ".")
 		fileCh <- d
 		errCh <- err
 	}(".", token)
