@@ -1,12 +1,29 @@
 package utils
 
 import (
+	"bufio"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type MockClient struct {
+}
+
+func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
+	f, _ := os.Open("../../test/data/DB.zip")
+	r := bufio.NewReader(f)
+	respBody := io.NopCloser(r)
+
+	return &http.Response{
+		StatusCode: 200,
+		Body:       respBody,
+	}, nil
+}
 
 func TestCSV_String(t *testing.T) {
 	csv := &CSV{File: "file1.CSV", Size: 1024}
@@ -55,4 +72,15 @@ func TestSplitCSV(t *testing.T) {
 	s, err = SplitCSV("not_found.csv", 1024)
 	assert.Nil(t, s)
 	assert.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestDownload(t *testing.T) {
+	customClient = &MockClient{}
+
+	n, s, err := Download("", ".")
+	assert.NoError(t, err)
+	assert.Equal(t, "DB11LITEIPV6.zip", filepath.Base(n))
+	assert.Equal(t, int64(1254), s)
+
+	os.Remove(n)
 }
