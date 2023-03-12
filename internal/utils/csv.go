@@ -25,6 +25,16 @@ type CSV struct {
 	Size int64
 }
 
+type CustomClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+var customClient CustomClient
+
+func init() {
+	customClient = &http.Client{}
+}
+
 // String representation of *IP.
 func (csv *CSV) String() string {
 	return fmt.Sprintf(`{"File":"%s","Size":%d}`, csv.File, csv.Size)
@@ -150,8 +160,13 @@ func Download(token, path string) (name string, size int64, err error) {
 		return
 	}
 
+	var req *http.Request
+	if req, err = http.NewRequest(http.MethodGet, fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code), nil); err != nil {
+		return
+	}
+
 	var resp *http.Response
-	if resp, err = http.Get(fmt.Sprintf("%s?token=%s&file=%s", baseUrl, token, code)); err != nil {
+	if resp, err = customClient.Do(req); err != nil {
 		return
 	}
 	defer resp.Body.Close()
