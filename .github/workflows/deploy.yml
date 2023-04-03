@@ -7,11 +7,8 @@ on:
 #     branches: [ "master" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
         - name: Setup key
           run: |
@@ -19,12 +16,18 @@ jobs:
                 mkdir -p "$HOME/.ssh"
                 echo "${{ secrets.key }}" > "$HOME/.ssh/key"
                 chmod 600 "$HOME/.ssh/key"
+
         - uses: actions/checkout@v3
         - name: Build the Docker image
-          run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+          run: docker build . --file Dockerfile --tag iploc:$(date +%s)
            
-#         - name: Deploy
-#           run: |
+        - name: Save image
+          run: |
+                cd $Home/usr/src/
+                mkdir -p iploc
+                docker save -o $Home/usr/src/iploc/iploc.tar iploc
+
+
            
      
     
