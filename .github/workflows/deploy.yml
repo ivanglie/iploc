@@ -13,15 +13,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
-      
-    - name: Setup key
-      run: |
-           set -eu
-           mkdir -p "$HOME/.ssh"
-           echo "${{ secrets.key }}" > "$HOME/.ssh/key"
-           chmod 600 "$HOME/.ssh/key"
+        - name: Setup key
+          run: |
+                set -eu
+                mkdir -p "$HOME/.ssh"
+                echo "${{ secrets.key }}" > "$HOME/.ssh/key"
+                chmod 600 "$HOME/.ssh/key"
+        - uses: actions/checkout@v3
+        - name: Build the Docker image
+          run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+           
+#         - name: Deploy
+#           run: |
+           
      
     
