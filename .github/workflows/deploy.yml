@@ -18,22 +18,28 @@ jobs:
                 chmod 600 "$HOME/.ssh/key"
 
         - uses: actions/checkout@v3
-        - name: Build
-          run: docker build . --file Dockerfile --tag iploc:$(date +%s)
+        - name: Build image
+          run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
            
         - name: Save image
           run: |
                 set -eu
                 mkdir -p "iploc"
                 docker save -o $HOME/iploc.tar iploc
+
+        - name: Deploy image to remote host
+          run: |
                 rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete $HOME/iploc.tar ${{ secrets.login }}:/usr/src/
                 
-                # Commands to run on remote host
+        - name: Run container on remote host
+          run: |
                 ssh $LOGIN 'bash -s' <<'ENDSSH'
-                cd /usr/src/
-                docker load -i iploc.tar
-                docker run --env-file .env.prod -d -p 80:19999 iploc
-            ENDSSH
+
+                  cd /usr/src/
+                  docker load -i iploc.tar
+                  docker run --env-file .env.prod -d -p 80:19999 iploc
+                  
+                ENDSSH
 
 
            
