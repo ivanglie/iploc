@@ -26,7 +26,7 @@ jobs:
                 set -eu
                 mkdir -p "iploc"
                 docker save -o $HOME/iploc.tar iploc
-                rsync -aP $HOME/iploc.tar "${{ secrets.login }}:/usr/src/
+                rsync -aP $HOME/iploc.tar ${{ secrets.login }}:/usr/src/
 
 
            
