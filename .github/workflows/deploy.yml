@@ -33,12 +33,12 @@ jobs:
                 
         - name: Run container on remote host
           run: |
-                ssh $LOGIN 'bash -s' <<'ENDSSH'
+                ssh ${{ $LOGIN }} 'bash -s' <<'ENDSSH'
 
                   cd /usr/src/
                   docker load -i iploc.tar
                   docker run --env-file .env.prod -d -p 80:19999 iploc
-                  
+
                 ENDSSH
 
 
