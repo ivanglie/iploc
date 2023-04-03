@@ -36,8 +36,8 @@ jobs:
                 ssh ${{ secrets.login }} 'bash -s' <<'ENDSSH'
 
                   cd /usr/src/
-                  docker load -i iploc.tar
-                  docker run --env-file .env.prod -d -p 80:19999 iploc
+                  # docker load -i iploc.tar
+                  # docker run --env-file .env.prod -d -p 80:19999 iploc
 
                 ENDSSH
 
