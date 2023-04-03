@@ -27,6 +27,13 @@ jobs:
                 mkdir -p "iploc"
                 docker save -o $HOME/iploc.tar iploc
                 rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete $HOME/iploc.tar ${{ secrets.login }}:/usr/src/
+                
+                # Commands to run on remote host
+                ssh $LOGIN 'bash -s' <<'ENDSSH'
+                cd /usr/src/
+                docker load -i iploc.tar
+                docker run --env-file .env.prod -d -p 80:19999 iploc
+            ENDSSH
 
 
            
