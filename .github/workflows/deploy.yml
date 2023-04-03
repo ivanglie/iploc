@@ -18,8 +18,9 @@ jobs:
       run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
       
     - name: Setup key
-      run: set -eu
-           mkdir "$HOME/.ssh"
+      run: |
+           set -eu
+           mkdir -p "$HOME/.ssh"
            echo "${{ secrets.key }}" > "$HOME/.ssh/key"
            chmod 600 "$HOME/.ssh/key"
      
