@@ -23,8 +23,9 @@ jobs:
            
         - name: Save image
           run: |
+                set -eu
                 cd $Home/usr/src/
-                mkdir -p iploc
+                mkdir -p "iploc"
                 docker save -o $Home/usr/src/iploc/iploc.tar iploc
 
 
