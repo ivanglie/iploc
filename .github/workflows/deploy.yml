@@ -25,7 +25,7 @@ jobs:
           run: |
                 set -eu
                 mkdir -p "iploc"
-                docker save -o $HOME/usr/src/iploc/iploc.tar iploc
+                docker save -o $HOME/iploc.tar iploc
 
 
            
