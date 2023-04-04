@@ -30,7 +30,7 @@ jobs:
 
         - name: Deploy image to remote host
           run: |
-                echo ${{ env.login }}
+                echo ${{ var.login }}
                 # ssh -i ${{ secrets.key }} ${{ secrets.login }} "sudo mkdir -p /usr/src/iploc"
                 # rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ secrets.login }}:/usr/src/iploc
                 
