@@ -24,20 +24,21 @@ jobs:
         - name: Save image
           run: |
                 set -eu
-                mkdir -p "iploc"
-                docker save -o $HOME/iploc.tar iploc
+                mkdir -p "/usr/src/iploc"
+                cd "/usr/src/iploc"
+                docker save -o iploc.tar iploc
 
-        - name: Deploy image to remote host
-          run: |
-                rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete $HOME/iploc.tar ${{ secrets.login }}:/usr/src/
+        # - name: Deploy image to remote host
+        #   run: |
+        #         rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete /iploc.tar .env ${{ secrets.login }}:/usr/src/
                 
-        - name: Run container on remote host
-          run: |
-                ssh ${{ secrets.login }} 'bash -s' <<'ENDSSH'
-                  cd /usr/src/
-                  docker load -i iploc.tar
-                  docker run --env-file .env.prod -d -p 80:19999 iploc
-                ENDSSH
+        # - name: Run container on remote host
+        #   run: |
+        #         ssh ${{ secrets.login }} 'bash -s' <<'ENDSSH'
+        #           cd /usr/src/
+        #           docker load -i iploc.tar
+        #           docker run --env-file .env.prod -d -p 80:18001 iploc
+        #         ENDSSH
 
 
            

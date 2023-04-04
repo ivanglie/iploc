@@ -7,4 +7,5 @@ FROM --platform=$BUILDPLATFORM alpine:3.17.0
 RUN apk add --no-cache tzdata
 ENV TZ=Europe/Moscow
 COPY --from=builder /usr/src /usr/local/bin
+EXPOSE 18001
 CMD ["iploc"]
