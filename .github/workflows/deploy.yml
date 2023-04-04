@@ -30,9 +30,9 @@ jobs:
 
         - name: Deploy image to remote host
           run: |
-                echo ${{ secrets.login }}
-                ssh -i ${{ secrets.key }} ${{ secrets.login }} "sudo mkdir -p /usr/src/iploc"
-                rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ secrets.login }}:/usr/src/iploc
+                echo ${{ env.login }}
+                # ssh -i ${{ secrets.key }} ${{ secrets.login }} "sudo mkdir -p /usr/src/iploc"
+                # rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ secrets.login }}:/usr/src/iploc
                 
         # - name: Run container on remote host
         #   run: |
