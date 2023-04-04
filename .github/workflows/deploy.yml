@@ -26,7 +26,7 @@ jobs:
                 set -eu
                 sudo mkdir -p "/usr/src/iploc"
                 cd "/usr/src/iploc"
-                docker save -o iploc.tar iploc
+                sudo docker save -o iploc.tar iploc
 
         # - name: Deploy image to remote host
         #   run: |
