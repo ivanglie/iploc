@@ -22,18 +22,17 @@ jobs:
               cd "/usr/src/iploc"
               sudo docker save -o iploc.tar iploc
 
-        - name: Test
+        - name: Deploy image to remote host
           uses: appleboy/ssh-action@v0.1.9
           with:
             host: ${{ secrets.HOST }}
             username: ${{ secrets.USERNAME }}
             key: ${{ secrets.KEY }}
             port: ${{ secrets.PORT }}
-            script: whoami
-
-        # - name: Deploy image to remote host
-        #   run: |
-        #         ssh -i $HOME/.ssh/key ${{ vars.login }} "sudo mkdir -p /usr/src/iploc"
+            script: |
+              whoami
+              sudo mkdir -p /usr/src/iploc
+              
         #         ## rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ vars.login }}:/usr/src/iploc
                 
         # - name: Run container on remote host
