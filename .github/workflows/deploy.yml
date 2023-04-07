@@ -9,26 +9,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - name: Build image
-      - uses: actions/checkout@v3
-        run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
+    steps:  
+        - uses: actions/checkout@v3
+        
+        - name: Build image
+          run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
           
-      - name: Save image
-        run: |
+        - name: Save image
+          run: |
               set -eu
               sudo mkdir -p "/usr/src/iploc"
               cd "/usr/src/iploc"
               sudo docker save -o iploc.tar iploc
 
-      - name: Test
-        uses: appleboy/ssh-action@v0.1.9
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          port: ${{ secrets.PORT }}
-          script: whoami
+        - name: Test
+          uses: appleboy/ssh-action@v0.1.9
+          with:
+            host: ${{ secrets.HOST }}
+            username: ${{ secrets.USERNAME }}
+            password: ${{ secrets.PASSWORD }}
+            port: ${{ secrets.PORT }}
+            script: whoami
 
 
 
