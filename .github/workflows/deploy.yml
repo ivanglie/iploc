@@ -31,8 +31,6 @@ jobs:
             port: ${{ secrets.PORT }}
             script: whoami
 
-
-
         # - name: Deploy image to remote host
         #   run: |
         #         ssh -i $HOME/.ssh/key ${{ vars.login }} "sudo mkdir -p /usr/src/iploc"
