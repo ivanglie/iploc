@@ -41,7 +41,7 @@ jobs:
 
         - name: Deploy with rsync
           # run: rsync -avz iploc.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/usr/src/iploc
-          run: rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/usr/src/iploc
+          run: rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/usr/src/iploc
 
         # - name: Run
         #   uses: appleboy/ssh-action@v0.1.9
