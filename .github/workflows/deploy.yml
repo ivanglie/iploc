@@ -18,8 +18,6 @@ jobs:
         - name: Save image
           run: |
               set -eu
-              sudo mkdir -p "/usr/src/iploc"
-              cd "/usr/src/iploc"
               sudo docker save -o iploc.tar iploc
 
         - name: Prepare remote host
