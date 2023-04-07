@@ -40,7 +40,7 @@ jobs:
               echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p "/usr/src/iploc"
 
         - name: Deploy with rsync
-          run: rsync -avz iploc.tar ${{ secrets.USERNAME }}@${{ secrets.KNOWN_HOST }}:/usr/src/iploc
+          run: rsync -avz iploc.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/usr/src/iploc
 
         # - name: Run
         #   uses: appleboy/ssh-action@v0.1.9
