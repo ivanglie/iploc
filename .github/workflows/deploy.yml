@@ -38,7 +38,7 @@ jobs:
             host: ${{ secrets.HOST }}
             key: ${{ secrets.KEY }}
             port: ${{ secrets.PORT }}
-            source: "/usr/src/iploc/iploc.tar"
+            source: "iploc.tar"
             target: "/usr/src/iploc/iploc.tar"
 
         #         ## rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ vars.login }}:/usr/src/iploc
