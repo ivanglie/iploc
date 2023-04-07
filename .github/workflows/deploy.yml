@@ -10,7 +10,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup key
+      # - name: Setup key
+      #   run: |
+      #         set -eu
+      #         mkdir -p "$HOME/.ssh"
+      #         echo "${{ secrets.key }}" > "$HOME/.ssh/key"
+      #         chmod 600 "$HOME/.ssh/key"
+
+      - name: Build image
+      - uses: actions/checkout@v3
+        run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
+          
+      - name: Save image
+        run: |
+              set -eu
+              sudo mkdir -p "/usr/src/iploc"
+              cd "/usr/src/iploc"
+              sudo docker save -o iploc.tar iploc
+
+      - name: Test
         uses: appleboy/ssh-action@v0.1.9
         with:
           host: ${{ secrets.HOST }}
@@ -19,23 +37,7 @@ jobs:
           port: ${{ secrets.PORT }}
           script: whoami
 
-        # - name: Setup key
-        #   run: |
-        #         set -eu
-        #         mkdir -p "$HOME/.ssh"
-        #         echo "${{ secrets.key }}" > "$HOME/.ssh/key"
-        #         chmod 600 "$HOME/.ssh/key"
 
-        # - uses: actions/checkout@v3
-        # - name: Build image
-        #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
-           
-        # - name: Save image
-        #   run: |
-        #         set -eu
-        #         sudo mkdir -p "/usr/src/iploc"
-        #         cd "/usr/src/iploc"
-        #         sudo docker save -o iploc.tar iploc
 
         # - name: Deploy image to remote host
         #   run: |
