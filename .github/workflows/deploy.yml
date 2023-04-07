@@ -10,13 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # - name: Setup key
-      #   run: |
-      #         set -eu
-      #         mkdir -p "$HOME/.ssh"
-      #         echo "${{ secrets.key }}" > "$HOME/.ssh/key"
-      #         chmod 600 "$HOME/.ssh/key"
-
       - name: Build image
       - uses: actions/checkout@v3
         run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
