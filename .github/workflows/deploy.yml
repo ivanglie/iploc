@@ -31,8 +31,8 @@ jobs:
             port: ${{ secrets.PORT }}
             script: |
               whoami
-              sudo mkdir -p /usr/src/iploc
-              
+              echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p "/usr/src/iploc"
+
         #         ## rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ vars.login }}:/usr/src/iploc
                 
         # - name: Run container on remote host
