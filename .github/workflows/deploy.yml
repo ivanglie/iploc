@@ -12,69 +12,19 @@ jobs:
     steps:  
         - uses: actions/checkout@v3
         
-        - name: Build image
-          run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
-          
-        - name: Save image
+        - name: Setup key
           run: |
-              set -eu
-              sudo docker save -o iploc.tar iploc
+            set -eu
+            mkdir "$HOME/.ssh"
+            echo "${{ secrets.key }}" > "$HOME/.ssh/key"
+            chmod 600 "$HOME/.ssh/key"
 
-        - name: Install SSH Key
-          uses: shimataro/ssh-key-action@v2
-          with:
-            key: ${{ secrets.KEY }} 
-            known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
-
-        - name: Adding Known Hosts
-          run: ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-
-        - name: Create directory on remote host
-          uses: appleboy/ssh-action@v0.1.9
-          with:
-            host: ${{ secrets.HOST }}
-            username: ${{ secrets.USERNAME }}
-            port: ${{ secrets.PORT }}
-            key: ${{ secrets.KEY }}
-            script:
-              echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p "/usr/src/iploc"
-
-        - name: Deploy with rsync
-          # run: rsync -avz iploc.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/usr/src/iploc
-          run: rsync -e "ssh -i ${{ secrets.KEY }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar ${{ secrets.USERNAME }}@${{ secrets.HOST }}:/usr/src/iploc
-
-        # - name: Run
-        #   uses: appleboy/ssh-action@v0.1.9
-        #   with:
-        #     host: ${{ secrets.HOST }}
-        #     username: ${{ secrets.USERNAME }}
-        #     port: ${{ secrets.PORT }}
-        #     key: ${{ secrets.KEY }}
-        #     script: |
-        #       cd /usr/src/iploc
-        #       docker load -i iploc.tar
-        #       docker run --env-file .env.prod -d -p 80:18001 iploc
-
-        # - name: copy file via ssh password
-        #   uses: appleboy/scp-action@master
-        #   with:
-        #     host: ${{ secrets.HOST }}
-        #     port: ${{ secrets.PORT }}
-        #     key: ${{ secrets.KEY }}
-        #     source: "iploc.tar"
-        #     target: "/usr/src/iploc/iploc.tar"
-
-        #         ## rsync -e "ssh -i ${{ secrets.key }} -o StrictHostKeyChecking=no" --rsync-path "sudo rsync" --archive --compress --delete iploc.tar .env ${{ vars.login }}:/usr/src/iploc
-                
-        # - name: Run container on remote host
+        # - name: Build image
+        #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
+          
+        # - name: Save image
         #   run: |
-        #         ssh ${{ secrets.login }} 'bash -s' <<'ENDSSH'
-        #           cd /usr/src/
-        #           docker load -i iploc.tar
-        #           docker run --env-file .env.prod -d -p 80:18001 iploc
-        #         ENDSSH
+        #       set -eu
+        #       sudo docker save -o iploc.tar iploc
 
-
-           
-     
-    
+        
