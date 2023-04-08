@@ -28,6 +28,4 @@ jobs:
               sudo docker save -o iploc.tar iploc
 
         - name:
-          run: rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --rsync-path "rsync" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
-
-        
+          run: rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
