@@ -17,7 +17,7 @@ jobs:
             ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
         - name: Create directory on remote server
-          run: ssh user@host "mkdir -p /usr/src/iploc"
+          run: ssh ${{ secrets.USER }}@${{ secrets.HOST }} "mkdir -p /usr/src/iploc"
           env:
             SSH_PRIVATE_KEY: ${{ secrets.KEY }}
 
