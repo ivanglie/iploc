@@ -20,6 +20,7 @@ jobs:
           run: ssh ${{ secrets.USER }}@${{ secrets.HOST }} "mkdir -p /usr/src/iploc"
           env:
             SSH_PRIVATE_KEY: ${{ secrets.KEY }}
+            
 
 
         # - name: Build image
