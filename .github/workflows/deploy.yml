@@ -39,4 +39,3 @@ jobs:
             ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
             echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
             echo ${{ secrets.PASSWORD }} | sudo -S docker run --env-file /usr/src/iploc/.env -d -p 19998:80 iploc"
-"
