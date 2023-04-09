@@ -16,9 +16,10 @@ jobs:
             echo "${{ secrets.KEY }}" > ~/.ssh/id_rsa
             ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
-        - name: Prepare remote host
-          run: |
-            ssh ${{ secrets.USER }}@${{ secrets.HOST }} "echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p /usr/src/iploc"
+        - name: Create directory on remote server
+          run: ssh user@host "mkdir -p /usr/src/iploc"
+          env:
+            SSH_PRIVATE_KEY: ${{ secrets.KEY }}
 
 
         # - name: Build image
