@@ -122,7 +122,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token = ip2location.Token
-	log.Println("token=", ip2location.Token)
 
 	fileCh := make(chan string)
 	errCh := make(chan error)
