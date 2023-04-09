@@ -3,8 +3,6 @@ name: Docker Image CI/CD
 on:
   push:
 #     branches: [ "master" ]
-  pull_request:
-#     branches: [ "master" ]
 
 jobs:
   build:
@@ -16,11 +14,8 @@ jobs:
           run: |
             set -eu
             mkdir "$HOME/.ssh"
-            echo "${{ secrets.key }}" > "$HOME/.ssh/key"
-            chmod 600 "$HOME/.ssh/key"
-
-        - name: Install an SSH key on a remote server’s authorized keys
-          run: ssh-copy-id -i $HOME/.ssh/key ${{ secrets.USER }}@${{ secrets.HOST }}
+            echo "${{ secrets.key }}" > "$HOME/.ssh/id_rsa"
+            chmod 600 "$HOME/.ssh/id_rsa"
 
         - name: Build image
           run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
@@ -31,4 +26,4 @@ jobs:
               sudo docker save -o iploc.tar iploc
 
         - name: Copy files to remote host
-          run: rsync -e "ssh -i $HOME/.ssh/key -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+          run: rsync -e "ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
