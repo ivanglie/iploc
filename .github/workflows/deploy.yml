@@ -32,5 +32,5 @@ jobs:
         #       sudo docker save -o iploc.tar iploc
 
 
-        # - name: Copy files to remote host
-        #   run: rsync -e "ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+        - name: Copy files to remote host
+          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
