@@ -10,16 +10,22 @@ jobs:
     steps:  
         - uses: actions/checkout@v3
         
-        - name: Setup key
+        - name: Write SSH keys
           run: |
-            set -eu
-            mkdir "$HOME/.ssh"
-            echo "${{ secrets.key }}" > "$HOME/.ssh/id_rsa"
-            chmod 600 "$HOME/.ssh/id_rsa"
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
-        - name: Prepare remote host
-          run: | 
-            ssh -i $HOME/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/iploc
+        # - name: Setup key
+        #   run: |
+        #     set -eu
+        #     mkdir "$HOME/.ssh"
+        #     echo "${{ secrets.key }}" > "$HOME/.ssh/id_rsa"
+        #     chmod 600 "$HOME/.ssh/id_rsa"
+
+        # - name: Prepare remote host
+        #   run: | 
+        #     ssh -i $HOME/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/iploc
 
         # - name: Build image
         #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
