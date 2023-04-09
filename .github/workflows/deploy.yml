@@ -33,3 +33,10 @@ jobs:
 
         - name: Copy files to remote host
           run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+
+        - name: Load and run docker container on remote host
+          run: |
+            ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
+            echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
+            echo ${{ secrets.PASSWORD }} | sudo -S docker run --env-file /usr/src/iploc/.env -d -p 19998:80 iploc"
+"
