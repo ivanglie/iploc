@@ -27,7 +27,9 @@ jobs:
           run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
           
         - name: Save image
-          run: sudo docker save -o iploc.tar iploc
+          run: |
+            sudo docker save -o iploc.tar iploc
+            sudo chmod 777 iploc.tar
 
         - name: Copy files to remote host
           run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
