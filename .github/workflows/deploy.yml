@@ -17,10 +17,9 @@ jobs:
             ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
         - name: Prepare remote host
-          run: | 
-            # ssh -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/iploc"
+          run: |
             ssh -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p /usr/src/iploc"
-            ssh -i ~/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
+
 
         # - name: Build image
         #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
