@@ -17,11 +17,10 @@ jobs:
             ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
         - name: Create directory on remote server
-          run: ssh ${{ secrets.USER }}@${{ secrets.HOST }} "mkdir -p /usr/src/iploc"
+          run: ssh ${{ secrets.USER }}@${{ secrets.HOST }} "sudo -S mkdir -p /usr/src/iploc"
           env:
-            SSH_PRIVATE_KEY: ${{ secrets.KEY }}
-            
-
+            KEY: ${{ secrets.KEY }}
+            PASSWORD:  ${{ secrets.PASSWORD }}
 
         # - name: Build image
         #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
