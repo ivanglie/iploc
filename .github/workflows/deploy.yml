@@ -23,14 +23,11 @@ jobs:
             echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p /usr/src/iploc
             echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
 
-        # - name: Build image
-        #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
+        - name: Build image
+          run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
           
-        # - name: Save image
-        #   run: |
-        #       set -eu
-        #       sudo docker save -o iploc.tar iploc
-
+        - name: Save image
+          run: sudo docker save -o iploc.tar iploc
 
         - name: Copy files to remote host
-          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
