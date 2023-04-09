@@ -24,7 +24,7 @@ jobs:
             echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
 
         - name: Build image
-          run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
+          run: docker buildx build . --platform=linux/amd64 --file Dockerfile
           
         - name: Save image
           run: |
