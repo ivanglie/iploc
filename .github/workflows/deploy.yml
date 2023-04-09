@@ -19,12 +19,7 @@ jobs:
 
         - name: Prepare remote host
           run: | 
-            ssh -i $HOME/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "
-                echo $PASSWORD | sudo -S rm -r /usr/src/iploc
-                echo $PASSWORD | sudo -S mkdir -p /usr/src/iploc
-                echo $PASSWORD | sudo -S chmod 777 /usr/src/iploc
-                echo OK
-            "
+            ssh -i $HOME/.ssh/id_rsa ${{ secrets.USER }}@${{ secrets.HOST }} "echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/iploc"
 
         # - name: Build image
         #   run: docker buildx build . --platform=linux/amd64 --file Dockerfile --tag iploc:$(date +%s)
