@@ -32,7 +32,7 @@ jobs:
             sudo chmod 777 iploc.tar
 
         - name: Copy files to remote host
-          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete docker-compose.yml iploc.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
 
         - name: Load and run docker container on remote host
           run: |
