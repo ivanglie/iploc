@@ -38,4 +38,4 @@ jobs:
           run: |
             ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
             echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
-            echo ${{ secrets.PASSWORD }} | sudo -S docker compose -f iploc/docker-compose.yml up -d"
+            echo ${{ secrets.PASSWORD }} | sudo -S docker compose -f /usr/src/iploc/docker-compose.yml up -d"
