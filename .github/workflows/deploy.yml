@@ -37,6 +37,5 @@ jobs:
         - name: Load and run docker container on remote host
           run: |
             ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
-            echo ${{ secrets.PASSWORD }} | sudo -S cd /usr/src/iploc
             echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
             echo ${{ secrets.PASSWORD }} | sudo -S cd /usr/src/iploc && docker compose up -d"
