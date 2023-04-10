@@ -25,3 +25,8 @@ jobs:
 
     - name: Test
       run: go test -race -v ./...
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.out
