@@ -24,11 +24,11 @@ jobs:
             echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
 
         - name: Build image
-          run: docker buildx build --platform=linux/amd64 -t iploc -f Dockerfile .
+          run: docker buildx build --platform=linux/amd64 --tag iploc:latest --file Dockerfile .
           
         - name: Save image
           run: |
-            sudo docker save -o iploc.tar iploc
+            sudo docker save -o iploc.tar iploc:latest
             sudo chmod 777 iploc.tar
 
         - name: Copy files to remote host
@@ -38,4 +38,4 @@ jobs:
           run: |
             ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
             echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
-            echo ${{ secrets.PASSWORD }} | sudo -S docker run --env-file /usr/src/iploc/.env -d -p 18001:80 iploc"
+            echo ${{ secrets.PASSWORD }} | sudo -S docker run --env-file /usr/src/iploc/.env -d -p 18001:18001 iploc:latest"
