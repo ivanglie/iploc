@@ -2,7 +2,7 @@
 
 
 [![Test](https://github.com/ivanglie/iploc/actions/workflows/test.yml/badge.svg)](https://github.com/ivanglie/iploc/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/ivanglie/iploc/branch/master/graph/badge.svg?token=NE2AU5KV3L)](https://codecov.io/gh/ivanglie/iploc)
+[![codecov](https://codecov.io/gh/ivanglie/iploc/branch/master/graph/badge.svg?token=sLJxFoa5EC)](https://codecov.io/gh/ivanglie/iploc)
 
 Web service that identifies the country, region or state, city, latitude and longitude, ZIP/Postal code, and timezone based on an IP address (IPv4 or IPv6).
 
