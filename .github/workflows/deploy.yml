@@ -16,7 +16,7 @@ jobs:
             echo "${{ secrets.KEY }}" > ~/.ssh/id_rsa
             ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
-        - name: Create directory on remote server
+        - name: Create directory on remote host
           run: |
             ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
             echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/iploc
@@ -24,7 +24,7 @@ jobs:
             echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
 
         - name: Build image
-          run: docker buildx build --platform=linux/amd64 --tag iploc:latest --file Dockerfile .
+          run: docker compose build
           
         - name: Save image
           run: |
@@ -32,10 +32,10 @@ jobs:
             sudo chmod 777 iploc.tar
 
         - name: Copy files to remote host
-          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar .env ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+          run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete iploc.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
 
         - name: Load and run docker container on remote host
           run: |
             ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
             echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
-            echo ${{ secrets.PASSWORD }} | sudo -S docker run --env-file /usr/src/iploc/.env -d -p 18001:18001 iploc:latest"
+            echo ${{ secrets.PASSWORD }} | sudo -S docker compose up -d"

@@ -1,0 +1,13 @@
+version: "3"
+services:
+  iploc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: iploc:latest
+    container_name: "iploc"
+    restart: always
+    ports:
+      - "80:18001"
+    environment:
+      - PORT=18001
