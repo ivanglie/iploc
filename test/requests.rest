@@ -1,5 +1,5 @@
 ###
-POST http://localhost:9000/download HTTP/1.1
+POST http://localhost:18001/download HTTP/1.1
 content-type: application/json
 
 {
@@ -7,13 +7,13 @@ content-type: application/json
 }
 
 ###
-GET http://localhost:9000/unzip
+GET http://localhost:18001/unzip
 
 ###
-GET http://localhost:9000/split
+GET http://localhost:18001/split
 
 ###
-GET http://localhost:9000/search?ip=8.8.8.8
+GET http://localhost:18001/search?ip=8.8.8.8
 
 ###
-GET http://localhost:9000/search?ip=2001:4860:4860:0:0:0:0:8888
+GET http://localhost:18001/search?ip=2001:4860:4860:0:0:0:0:8888

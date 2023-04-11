@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	port  string
 	token string
 	d     string
 	csv   *utils.CSV
@@ -24,14 +23,12 @@ type IP2Location struct {
 	Token string `json:"token"`
 }
 
-func init() {
-	port = os.Getenv("PORT")
+func main() {
+	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		log.Fatalf("incorrect port: %s\n", port)
 	}
-}
 
-func main() {
 	http.HandleFunc("/search", search)
 	http.HandleFunc("/split", split)
 	http.HandleFunc("/unzip", unzip)
@@ -59,10 +56,9 @@ func search(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, err)
 		return
 	}
+
 	log.Println("loc=", loc)
-
 	log.Println("Search completed")
-
 	fmt.Fprintln(w, loc)
 }
 
@@ -78,7 +74,6 @@ func split(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("s=", s)
-
 	log.Println("Split completed")
 	fmt.Fprintln(w, s)
 }
@@ -92,7 +87,7 @@ func unzip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
-	csv, err = utils.UnzipCSV(d)
+	csv, err = utils.Unzip(d)
 	if err != nil {
 		log.Println("err=", err)
 		fmt.Fprintln(w, err)
@@ -100,7 +95,6 @@ func unzip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println(csv)
-
 	log.Println("Unzip completed")
 	fmt.Fprintln(w, csv)
 }
@@ -132,7 +126,6 @@ func download(w http.ResponseWriter, r *http.Request) {
 	}(".", token)
 
 	log.Println("file=", <-fileCh, "err=", <-errCh)
-
 	log.Println("Download completed")
 	fmt.Fprintln(w, d)
 }
