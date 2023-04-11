@@ -93,8 +93,8 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 	return
 }
 
-// UnzipCSV file specified by p and return an extracted csv filename, size.
-func UnzipCSV(path string) (c *CSV, err error) {
+// Unzip file specified by p and return an extracted csv filename, size.
+func Unzip(path string) (c *CSV, err error) {
 	if len(path) == 0 {
 		err = fmt.Errorf("incorrect path %s", path)
 		return
