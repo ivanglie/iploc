@@ -29,6 +29,7 @@ func main() {
 		log.Fatalf("incorrect port: %s\n", port)
 	}
 
+	http.HandleFunc("/", search)
 	http.HandleFunc("/search", search)
 	http.HandleFunc("/split", split)
 	http.HandleFunc("/unzip", unzip)
@@ -45,12 +46,27 @@ func main() {
 }
 
 func search(w http.ResponseWriter, r *http.Request) {
-	log.Println("Searching...")
+	log.Println("Search...")
 
 	a := r.URL.Query().Get("ip")
 	log.Println("a=", a)
 
-	loc, err := iploc.Search(a, s)
+	var loc *iploc.Loc
+	var err error
+
+	if len(a) == 0 {
+		a, _, err = utils.UserIP(r)
+		if err != nil {
+			log.Println("err=", err)
+			fmt.Fprintln(w, err)
+			return
+		}
+
+		loc, err = iploc.Search(a, s)
+	} else {
+		loc, err = iploc.Search(a, s)
+	}
+
 	if err != nil {
 		log.Println("err=", err)
 		fmt.Fprintln(w, err)
@@ -63,7 +79,7 @@ func search(w http.ResponseWriter, r *http.Request) {
 }
 
 func split(w http.ResponseWriter, r *http.Request) {
-	log.Println("Spliting...")
+	log.Println("Split...")
 
 	var err error
 	s, err = utils.SplitCSV(csv.File, csv.Size/200)
@@ -79,7 +95,7 @@ func split(w http.ResponseWriter, r *http.Request) {
 }
 
 func unzip(w http.ResponseWriter, r *http.Request) {
-	log.Println("Unziping...")
+	log.Println("Unzip...")
 
 	// debug
 	if len(d) == 0 {
@@ -100,7 +116,7 @@ func unzip(w http.ResponseWriter, r *http.Request) {
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
-	log.Println("Downloading...")
+	log.Println("Download...")
 
 	// debug
 	if len(d) == 0 {
