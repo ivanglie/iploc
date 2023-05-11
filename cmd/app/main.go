@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("incorrect port: %s\n", port)
 	}
 
-	http.HandleFunc("/", search)
+	http.HandleFunc("/", index)
 	http.HandleFunc("/search", search)
 	http.HandleFunc("/split", split)
 	http.HandleFunc("/unzip", unzip)
@@ -45,28 +45,28 @@ func main() {
 	}
 }
 
+func index(w http.ResponseWriter, r *http.Request) {
+	log.Println("Index")
+
+	a, _, err := utils.UserIP(r)
+	log.Println("a=", a)
+
+	if err != nil {
+		log.Println("err=", err)
+		fmt.Fprintln(w, err)
+		return
+	}
+
+	http.Redirect(w, r, "/search?ip="+a, http.StatusSeeOther)
+}
+
 func search(w http.ResponseWriter, r *http.Request) {
 	log.Println("Search...")
 
 	a := r.URL.Query().Get("ip")
 	log.Println("a=", a)
 
-	var loc *iploc.Loc
-	var err error
-
-	if len(a) == 0 {
-		a, _, err = utils.UserIP(r)
-		if err != nil {
-			log.Println("err=", err)
-			fmt.Fprintln(w, err)
-			return
-		}
-
-		loc, err = iploc.Search(a, s)
-	} else {
-		loc, err = iploc.Search(a, s)
-	}
-
+	loc, err := iploc.Search(a, s)
 	if err != nil {
 		log.Println("err=", err)
 		fmt.Fprintln(w, err)
