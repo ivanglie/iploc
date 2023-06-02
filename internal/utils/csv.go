@@ -12,8 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	log "github.com/rs/zerolog/log"
 )
 
 const (
@@ -50,7 +48,6 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 
 	file, err := os.Open(p)
 	if err != nil {
-		log.Error().Msgf("err %v", err)
 		return
 	}
 	defer file.Close()
@@ -58,7 +55,6 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 	writeToFile := func(np string, b []byte) {
 		err := os.WriteFile(np, b, 0777)
 		if err != nil {
-			log.Error().Msgf("failed writing in file: %v", err)
 			return
 		}
 	}
@@ -70,7 +66,7 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 		count, err := file.Read(buffer)
 		if err != nil {
 			if err != io.EOF {
-				log.Error().Msgf("err %v", err)
+				continue
 			}
 
 			break
