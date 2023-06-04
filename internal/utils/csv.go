@@ -52,23 +52,12 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 	}
 	defer file.Close()
 
-	writeToFile := func(np string, b []byte) {
-		err := os.WriteFile(np, b, 0777)
-		if err != nil {
-			return
-		}
-	}
-
 	buffer := make([]byte, bufferSize)
 	head := []byte{}
 	i := 0
 	for {
 		count, err := file.Read(buffer)
-		if err != nil {
-			if err != io.EOF {
-				continue
-			}
-
+		if err == io.EOF {
 			break
 		}
 
@@ -81,9 +70,11 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 		}
 
 		i++
-		np := fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i)
-		np, _ = filepath.Abs(np)
-		writeToFile(np, chunk)
+		np, _ := filepath.Abs(fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i))
+		if err = os.WriteFile(np, chunk, 0777); err != nil {
+			break
+		}
+
 		s = append(s, np)
 	}
 
