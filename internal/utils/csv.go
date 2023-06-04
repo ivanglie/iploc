@@ -71,9 +71,7 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 
 		i++
 		np, _ := filepath.Abs(fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i))
-		if err = os.WriteFile(np, chunk, 0777); err != nil {
-			break
-		}
+		os.WriteFile(np, chunk, 0777) //TODO: add error handling
 
 		s = append(s, np)
 	}
