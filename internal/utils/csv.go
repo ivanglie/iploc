@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -49,29 +48,16 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 
 	file, err := os.Open(p)
 	if err != nil {
-		log.Println(err)
 		return
 	}
 	defer file.Close()
-
-	writeToFile := func(np string, b []byte) {
-		err := os.WriteFile(np, b, 0777)
-		if err != nil {
-			log.Println("failed writing in file:", err)
-			return
-		}
-	}
 
 	buffer := make([]byte, bufferSize)
 	head := []byte{}
 	i := 0
 	for {
 		count, err := file.Read(buffer)
-		if err != nil {
-			if err != io.EOF {
-				log.Println("err=", err)
-			}
-
+		if err == io.EOF {
 			break
 		}
 
@@ -84,9 +70,9 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 		}
 
 		i++
-		np := fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i)
-		np, _ = filepath.Abs(np)
-		writeToFile(np, chunk)
+		np, _ := filepath.Abs(fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i))
+		os.WriteFile(np, chunk, 0777) //TODO: add error handling
+
 		s = append(s, np)
 	}
 
