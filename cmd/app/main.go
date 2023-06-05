@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 	log "github.com/rs/zerolog/log"
@@ -169,6 +170,8 @@ func download(w http.ResponseWriter, r *http.Request) {
 }
 
 func setupLog(dbg bool) {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+
 	if dbg {
 		log.Level(zerolog.DebugLevel)
 		return
