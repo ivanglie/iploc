@@ -25,6 +25,17 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
+func TestDB_Prepare(t *testing.T) {
+	db := &DB{}
+
+	// Error: empty path
+	err := db.Prepare("", "")
+	assert.Error(t, err)
+
+	err = db.Prepare("", "../../test/data")
+	assert.Error(t, err)
+}
+
 func TestDB_Search(t *testing.T) {
 	db := &DB{}
 	db.Chunks = []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"}

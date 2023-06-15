@@ -110,11 +110,7 @@ func split(p string, bufferSize int64) (s []string, err error) {
 // unzip file specified by p and return an extracted csv filename, size.
 func unzip(path string) (name string, size int64, err error) {
 	if len(path) == 0 {
-		err = fmt.Errorf("incorrect path %s", path)
-		return
-	}
-
-	if path, err = filepath.Abs(path); err != nil {
+		err = fmt.Errorf("empty path")
 		return
 	}
 
@@ -170,7 +166,7 @@ func unzip(path string) (name string, size int64, err error) {
 // download IP2Location database specified by token and return a name, size of zip file.
 func download(token, path string) (name string, size int64, err error) {
 	if len(path) == 0 {
-		err = fmt.Errorf("incorrect path %s", path)
+		err = fmt.Errorf("empty path")
 		return
 	}
 
