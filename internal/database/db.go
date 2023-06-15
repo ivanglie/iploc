@@ -182,7 +182,7 @@ func download(token, path string) (name string, size int64, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("bad status: %s", resp.Status)
+		err = fmt.Errorf("bad status: code %d, error %s", resp.StatusCode, resp.Status)
 		return
 	}
 

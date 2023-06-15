@@ -2,6 +2,7 @@ package database
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -23,6 +24,34 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 		StatusCode: 200,
 		Body:       respBody,
 	}, nil
+}
+
+type MockClientBadStatus struct {
+}
+
+func (m *MockClientBadStatus) Do(req *http.Request) (*http.Response, error) {
+	f, _ := os.Open("../../test/data/DB.zip")
+	r := bufio.NewReader(f)
+	respBody := io.NopCloser(r)
+
+	return &http.Response{
+		StatusCode: 503,
+		Body:       respBody,
+	}, nil
+}
+
+type MockClientError struct {
+}
+
+func (m *MockClientError) Do(req *http.Request) (*http.Response, error) {
+	f, _ := os.Open("../../test/data/DB.zip")
+	r := bufio.NewReader(f)
+	respBody := io.NopCloser(r)
+
+	return &http.Response{
+		StatusCode: 200,
+		Body:       respBody,
+	}, errors.New("something went wrong")
 }
 
 func TestDB_Prepare(t *testing.T) {
@@ -103,5 +132,15 @@ func Test_download(t *testing.T) {
 	assert.Equal(t, "DB11LITEIPV6.zip", filepath.Base(n))
 	assert.Equal(t, int64(1254), s)
 
-	os.Remove(n)
+	// Bad status
+	customClient = &MockClientBadStatus{}
+
+	_, _, err = download("", ".")
+	assert.Error(t, err)
+
+	// Error
+	customClient = &MockClientError{}
+
+	_, _, err = download("", ".")
+	assert.Error(t, err)
 }
