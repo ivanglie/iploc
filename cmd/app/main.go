@@ -21,8 +21,7 @@ type IP2Location struct {
 
 var (
 	opts struct {
-		Port string `long:"p" env:"PORT" default:"18001" description:"port"`
-		Dbg  bool   `long:"dbg" env:"DEBUG" description:"debug mode"`
+		Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
 	}
 
 	version = "unknown"
@@ -46,19 +45,20 @@ func main() {
 
 	setupLog(opts.Dbg)
 
-	port := opts.Port
-	if len(port) == 0 {
-		log.Fatal().Msgf("incorrect port: %s\n", port)
+	handler := http.NewServeMux()
+	handler.HandleFunc("/", index)
+	handler.HandleFunc("/search", search)
+	handler.HandleFunc("/split", split)
+	handler.HandleFunc("/unzip", unzip)
+	handler.HandleFunc("/download", download)
+
+	httpServer := &http.Server{
+		Addr:    ":18001",
+		Handler: handler,
 	}
 
-	http.HandleFunc("/", index)
-	http.HandleFunc("/search", search)
-	http.HandleFunc("/split", split)
-	http.HandleFunc("/unzip", unzip)
-	http.HandleFunc("/download", download)
-
-	log.Info().Msgf("Listening on port: %s", port)
-	err := http.ListenAndServe(":"+port, nil)
+	log.Info().Msgf("Listening on port %s", httpServer.Addr)
+	err := httpServer.ListenAndServe()
 
 	if errors.Is(err, http.ErrServerClosed) {
 		log.Panic().Msg("server closed")
