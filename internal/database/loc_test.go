@@ -1,4 +1,4 @@
-package iploc
+package database
 
 import (
 	"encoding/csv"
@@ -31,8 +31,8 @@ func teardownTest(t *testing.T) {
 	t.Log("Teardown test")
 }
 
-func TestSearch(t *testing.T) {
-	loc, err := Search("8.8.8.8", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
+func Test_search(t *testing.T) {
+	loc, err := search("8.8.8.8", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, err)
 	assert.NotNil(t, loc)
 	assert.NotNil(t, loc.Properties)
@@ -46,15 +46,15 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, "-07:00", loc.Properties[TimeZone])
 
 	// Errors
-	loc, err = Search("8.8.8.", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
+	loc, err = search("8.8.8.", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "address ::ffff:8.8.8. is incorrect IP")
 
-	loc, err = Search("8.8.8.8", []string{})
+	loc, err = search("8.8.8.8", []string{})
 	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "chunks is empty or not found")
 
-	loc, err = Search("9.9.9.9", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
+	loc, err = search("9.9.9.9", []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"})
 	assert.Nil(t, loc)
 	assert.Equal(t, err.Error(), "281470833330441 not found")
 }

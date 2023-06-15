@@ -1,4 +1,4 @@
-package utils
+package database
 
 import (
 	"archive/zip"
@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 const (
@@ -19,9 +20,13 @@ const (
 	code    = "DB11LITEIPV6"                         // IP2Location IPv4 and IPv6 Database Code
 )
 
-type CSV struct {
-	File string
-	Size int64
+type DB struct {
+	sync.RWMutex
+	Zip     string
+	ZipSize int64
+	Csv     string
+	CsvSize int64
+	Chunks  []string
 }
 
 type CustomClient interface {
@@ -34,13 +39,36 @@ func init() {
 	customClient = &http.Client{}
 }
 
-// String representation of *IP.
-func (csv *CSV) String() string {
-	return fmt.Sprintf(`{"File":"%s","Size":%d}`, csv.File, csv.Size)
+// Prepare are downloading, unzipping and splitting the database file.
+func (db *DB) Prepare(token, path string) (err error) {
+	db.Lock()
+	defer db.Unlock()
+
+	if db.Zip, db.ZipSize, err = download(token, path); err != nil {
+		return
+	}
+
+	if db.Csv, db.CsvSize, err = unzip(db.Zip); err != nil {
+		return
+	}
+
+	if db.Chunks, err = split(db.Csv, db.CsvSize/200); err != nil {
+		return
+	}
+
+	return
 }
 
-// SplitCSV file specified by p on smaller chunks and return a filepaths of chunks.
-func SplitCSV(p string, bufferSize int64) (s []string, err error) {
+// Search for a given IP address and return a Loc struct.
+func (db *DB) Search(address string) (*Loc, error) {
+	db.RLock()
+	defer db.RUnlock()
+
+	return search(address, db.Chunks)
+}
+
+// split CSV file specified by p on smaller chunks and return a filepaths of chunks.
+func split(p string, bufferSize int64) (s []string, err error) {
 	if len(p) == 0 {
 		err = errors.New("incorrect path")
 		return
@@ -79,8 +107,8 @@ func SplitCSV(p string, bufferSize int64) (s []string, err error) {
 	return
 }
 
-// Unzip file specified by p and return an extracted csv filename, size.
-func Unzip(path string) (c *CSV, err error) {
+// unzip file specified by p and return an extracted csv filename, size.
+func unzip(path string) (name string, size int64, err error) {
 	if len(path) == 0 {
 		err = fmt.Errorf("incorrect path %s", path)
 		return
@@ -107,7 +135,7 @@ func Unzip(path string) (c *CSV, err error) {
 		}
 		defer in.Close()
 
-		name := filepath.Join(filepath.Dir(path), f.Name)
+		name = filepath.Join(filepath.Dir(path), f.Name)
 
 		var out *os.File
 		if out, err = os.Create(name); err != nil {
@@ -133,14 +161,14 @@ func Unzip(path string) (c *CSV, err error) {
 			continue
 		}
 
-		c = &CSV{File: name, Size: info.Size()}
+		size = info.Size()
 	}
 
 	return
 }
 
-// Download IP2Location database specified by token and return a name, size of zip file.
-func Download(token, path string) (name string, size int64, err error) {
+// download IP2Location database specified by token and return a name, size of zip file.
+func download(token, path string) (name string, size int64, err error) {
 	if len(path) == 0 {
 		err = fmt.Errorf("incorrect path %s", path)
 		return
