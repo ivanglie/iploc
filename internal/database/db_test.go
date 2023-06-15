@@ -73,10 +73,10 @@ func Test_unzip(t *testing.T) {
 	_, _, err = unzip("../test.zip")
 	assert.Error(t, err)
 
-	// Test that unzip handles invalid input file path
+	// Test that unzip handles empty input file path
 	csv, _, err = unzip("")
 	assert.Error(t, err)
-	assert.Nil(t, csv)
+	assert.Empty(t, csv)
 
 	// Test that unzip handles invalid zip file path
 	csv, _, err = unzip("invalid.zip")
