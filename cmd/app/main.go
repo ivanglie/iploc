@@ -42,9 +42,24 @@ func main() {
 	setupLog(opts.Dbg)
 
 	go func() {
-		log.Info().Msg("Prepare...")
-		db.Prepare(opts.Token, ".", 200)
-		log.Info().Msg("Prepare completed")
+		log.Info().Msg("Download...")
+		if err := db.Download(opts.Token, "."); err != nil {
+			log.Fatal().Msgf("error downloading: %v", err)
+		}
+		log.Info().Msg("Download completed")
+
+		log.Info().Msg("Unzip...")
+		if err := db.Unzip(); err != nil {
+			log.Fatal().Msgf("error unzipping: %v", err)
+		}
+		log.Info().Msg("Unzip completed")
+
+		log.Info().Msg("Split...")
+		db.BufferSize = db.CSVSize / 200
+		if err := db.Split(); err != nil {
+			log.Fatal().Msgf("error splitting: %v", err)
+		}
+		log.Info().Msg("Split completed")
 	}()
 
 	listenAndServe()

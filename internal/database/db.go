@@ -22,11 +22,12 @@ const (
 
 type DB struct {
 	sync.RWMutex
-	Zip     string
-	ZipSize int64
-	Csv     string
-	CsvSize int64
-	Chunks  []string
+	zip        string
+	zipSize    int64
+	csv        string
+	CSVSize    int64
+	chunks     []string
+	BufferSize int64
 }
 
 type CustomClient interface {
@@ -39,51 +40,36 @@ func init() {
 	customClient = &http.Client{}
 }
 
-// Prepare are downloading, unzipping and splitting the database file.
-// token is a token for downloading the database file.
-// path is a path to the database directory.
-// chunks is a number of chunks to split the database file.
-func (db *DB) Prepare(token, path string, chunks int64) (err error) {
-	db.Lock()
-	defer db.Unlock()
-
-	if db.Zip, db.ZipSize, err = download(token, path); err != nil {
-		return
-	}
-
-	if db.Csv, db.CsvSize, err = unzip(db.Zip); err != nil {
-		return
-	}
-
-	if db.Chunks, err = split(db.Csv, db.CsvSize/chunks); err != nil {
-		return
-	}
-
-	return
-}
-
 // Search for a given IP address and return a Loc struct.
 func (db *DB) Search(address string) (*Loc, error) {
 	db.RLock()
 	defer db.RUnlock()
 
-	return search(address, db.Chunks)
+	return search(address, db.chunks)
 }
 
-// split CSV file specified by p on smaller chunks and return a filepaths of chunks.
-func split(p string, bufferSize int64) (s []string, err error) {
-	if len(p) == 0 {
-		err = errors.New("incorrect path")
+// Split CSV file.
+func (db *DB) Split() (err error) {
+	db.Lock()
+	defer db.Unlock()
+
+	if len(db.csv) == 0 {
+		err = errors.New("empty db.csv")
 		return
 	}
 
-	file, err := os.Open(p)
+	if db.CSVSize == 0 {
+		err = errors.New("db.csvSize is 0")
+		return
+	}
+
+	file, err := os.Open(db.csv)
 	if err != nil {
 		return
 	}
 	defer file.Close()
 
-	buffer := make([]byte, bufferSize)
+	buffer := make([]byte, db.BufferSize)
 	head := []byte{}
 	i := 0
 	for {
@@ -101,24 +87,27 @@ func split(p string, bufferSize int64) (s []string, err error) {
 		}
 
 		i++
-		np, _ := filepath.Abs(fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(p, ".CSV"), i))
+		np, _ := filepath.Abs(fmt.Sprintf("%s_%04d.CSV", strings.TrimSuffix(db.csv, ".CSV"), i))
 		os.WriteFile(np, chunk, 0777) //TODO: add error handling
 
-		s = append(s, np)
+		db.chunks = append(db.chunks, np)
 	}
 
 	return
 }
 
-// unzip file specified by p and return an extracted csv filename, size.
-func unzip(path string) (name string, size int64, err error) {
-	if len(path) == 0 {
-		err = fmt.Errorf("empty path")
+// Unzip file.
+func (db *DB) Unzip() (err error) {
+	db.Lock()
+	defer db.Unlock()
+
+	if len(db.zip) == 0 {
+		err = fmt.Errorf("empty db.zip")
 		return
 	}
 
 	var zr *zip.ReadCloser
-	if zr, err = zip.OpenReader(path); err != nil {
+	if zr, err = zip.OpenReader(db.zip); err != nil {
 		return
 	}
 	defer zr.Close()
@@ -134,10 +123,10 @@ func unzip(path string) (name string, size int64, err error) {
 		}
 		defer in.Close()
 
-		name = filepath.Join(filepath.Dir(path), f.Name)
+		db.csv = filepath.Join(filepath.Dir(db.zip), f.Name)
 
 		var out *os.File
-		if out, err = os.Create(name); err != nil {
+		if out, err = os.Create(db.csv); err != nil {
 			continue
 		}
 		defer out.Close()
@@ -160,14 +149,17 @@ func unzip(path string) (name string, size int64, err error) {
 			continue
 		}
 
-		size = info.Size()
+		db.CSVSize = info.Size()
 	}
 
 	return
 }
 
-// download IP2Location database specified by token and return a name, size of zip file.
-func download(token, path string) (name string, size int64, err error) {
+// Download IP2Location database specified by token to path.
+func (db *DB) Download(token, path string) (err error) {
+	db.Lock()
+	defer db.Unlock()
+
 	if len(path) == 0 {
 		err = fmt.Errorf("empty path")
 		return
@@ -185,16 +177,16 @@ func download(token, path string) (name string, size int64, err error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("bad status: code %d, error %s", resp.StatusCode, resp.Status)
+		err = fmt.Errorf("error %d %s", resp.StatusCode, resp.Status)
 		return
 	}
 
-	if name, err = filepath.Abs(filepath.Join(filepath.Dir(path), code+".zip")); err != nil {
+	if db.zip, err = filepath.Abs(filepath.Join(filepath.Dir(path), code+".zip")); err != nil {
 		return
 	}
 
 	var file *os.File
-	if file, err = os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fs.ModeAppend); err != nil {
+	if file, err = os.OpenFile(db.zip, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fs.ModeAppend); err != nil {
 		return
 	}
 	defer file.Close()
@@ -208,7 +200,13 @@ func download(token, path string) (name string, size int64, err error) {
 		return
 	}
 
-	size = info.Size()
+	db.zipSize = info.Size()
 
 	return
+}
+
+// String returns a string representation of the DB struct.
+func (db *DB) String() string {
+	return fmt.Sprintf("DB{zip: %s, zipSize: %d, csv: %s, csvSize: %d, chunks: %v, ChunksCount: %d}",
+		db.zip, db.zipSize, db.csv, db.CSVSize, db.chunks, db.BufferSize)
 }
