@@ -9,5 +9,3 @@ services:
     restart: always
     ports:
       - "80:18001"
-    environment:
-      - PORT=18001
