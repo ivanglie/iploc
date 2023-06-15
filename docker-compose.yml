@@ -9,3 +9,5 @@ services:
     restart: always
     ports:
       - "80:18001"
+    environment:
+      - TOKEN

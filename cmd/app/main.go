@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	log "github.com/rs/zerolog/log"
 
-	"github.com/ivanglie/iploc/internal/iploc"
+	"github.com/ivanglie/iploc/internal/database"
 	"github.com/ivanglie/iploc/internal/utils"
 	"github.com/jessevdk/go-flags"
 )
@@ -21,15 +20,12 @@ type IP2Location struct {
 
 var (
 	opts struct {
-		Dbg bool `long:"dbg" env:"DEBUG" description:"debug mode"`
+		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
+		Dbg   bool   `long:"dbg" env:"DEBUG" description:"debug mode"`
 	}
 
 	version = "unknown"
-
-	token string
-	d     string
-	csv   *utils.CSV
-	s     []string
+	db      = &database.DB{}
 )
 
 func main() {
@@ -45,12 +41,34 @@ func main() {
 
 	setupLog(opts.Dbg)
 
+	go func() {
+		log.Info().Msg("Download...")
+		if err := db.Download(opts.Token, "."); err != nil {
+			log.Fatal().Msgf("error downloading: %v", err)
+		}
+		log.Info().Msg("Download completed")
+
+		log.Info().Msg("Unzip...")
+		if err := db.Unzip(); err != nil {
+			log.Fatal().Msgf("error unzipping: %v", err)
+		}
+		log.Info().Msg("Unzip completed")
+
+		log.Info().Msg("Split...")
+		db.BufferSize = db.CSVSize / 200
+		if err := db.Split(); err != nil {
+			log.Fatal().Msgf("error splitting: %v", err)
+		}
+		log.Info().Msg("Split completed")
+	}()
+
+	listenAndServe()
+}
+
+func listenAndServe() {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", index)
 	handler.HandleFunc("/search", search)
-	handler.HandleFunc("/split", split)
-	handler.HandleFunc("/unzip", unzip)
-	handler.HandleFunc("/download", download)
 
 	httpServer := &http.Server{
 		Addr:    ":18001",
@@ -88,7 +106,7 @@ func search(w http.ResponseWriter, r *http.Request) {
 	a := r.URL.Query().Get("ip")
 	log.Info().Msgf("user ip: %s", a)
 
-	loc, err := iploc.Search(a, s)
+	loc, err := db.Search(a)
 	if err != nil {
 		log.Error().Msgf("err %v", err)
 		fmt.Fprintln(w, err)
@@ -98,74 +116,6 @@ func search(w http.ResponseWriter, r *http.Request) {
 	log.Debug().Msgf("loc: %v", loc)
 	log.Info().Msg("Search completed")
 	fmt.Fprintln(w, loc)
-}
-
-func split(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Split...")
-
-	var err error
-	s, err = utils.SplitCSV(csv.File, csv.Size/200)
-	if err != nil {
-		log.Error().Msgf("err %v", err)
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	log.Debug().Msgf("s %s", s)
-	log.Info().Msg("Split completed")
-	fmt.Fprintln(w, s)
-}
-
-func unzip(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Unzip...")
-
-	// debug
-	if len(d) == 0 {
-		d = "/tmp/DB11LITEIPV6.zip"
-	}
-
-	var err error
-	csv, err = utils.Unzip(d)
-	if err != nil {
-		log.Error().Msgf("err %v", err)
-		fmt.Fprintln(w, err)
-		return
-	}
-
-	log.Debug().Msgf("csv %v", csv)
-	log.Info().Msg("Unzip completed")
-	fmt.Fprintln(w, csv)
-}
-
-func download(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Download...")
-
-	// debug
-	if len(d) == 0 {
-		d = "/tmp/DB11LITEIPV6.zip"
-	}
-
-	decoder := json.NewDecoder(r.Body)
-
-	var ip2location *IP2Location
-	err := decoder.Decode(&ip2location)
-	if err != nil {
-		panic(err)
-	}
-
-	token = ip2location.Token
-
-	fileCh := make(chan string)
-	errCh := make(chan error)
-	go func(p, t string) {
-		d, _, err = utils.Download(token, ".")
-		fileCh <- d
-		errCh <- err
-	}(".", token)
-
-	log.Debug().Msgf("file: %v, err: %v", <-fileCh, <-errCh)
-	log.Info().Msg("Download completed")
-	fmt.Fprintln(w, d)
 }
 
 func setupLog(dbg bool) {

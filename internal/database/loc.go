@@ -1,4 +1,4 @@
-package iploc
+package database
 
 import (
 	"encoding/csv"
@@ -53,8 +53,8 @@ func (loc *Loc) String() string {
 		p[Code], p[Country], p[Region], p[City], p[Latitude], p[Longitude], p[ZipCode], p[TimeZone])
 }
 
-// Search location by address in file paths.
-func Search(address string, paths []string) (loc *Loc, err error) {
+// search location by address in file paths.
+func search(address string, paths []string) (loc *Loc, err error) {
 	num, err := convertIP(address)
 	if err != nil {
 		return

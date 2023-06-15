@@ -10,7 +10,7 @@ Web service that identifies the country, region or state, city, latitude and lon
 
 * Reduces CPU and RAM utilization by using a binary search algorithm on smaller chunks of a large raw data file, which has been pre-split
 
-* Procedure for downloading a database
+* Auto downloading a database and preparing it for use, using a IP2Location Download Token
 
 ## Example
 
