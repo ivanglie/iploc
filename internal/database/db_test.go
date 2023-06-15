@@ -55,13 +55,14 @@ func (m *MockClientError) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestDB_Prepare(t *testing.T) {
+	customClient = &MockClient{}
+
 	db := &DB{}
+	err := db.Prepare("", "../../test/data/", 2)
+	assert.NoError(t, err)
 
-	// Error: empty path
-	err := db.Prepare("", "")
-	assert.Error(t, err)
-
-	err = db.Prepare("", "../../test/data")
+	// Empty path
+	err = db.Prepare("", "", 2)
 	assert.Error(t, err)
 }
 

@@ -43,7 +43,7 @@ func main() {
 
 	go func() {
 		log.Info().Msg("Prepare...")
-		db.Prepare(opts.Token, ".")
+		db.Prepare(opts.Token, ".", 200)
 		log.Info().Msg("Prepare completed")
 	}()
 

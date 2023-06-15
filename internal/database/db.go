@@ -40,7 +40,10 @@ func init() {
 }
 
 // Prepare are downloading, unzipping and splitting the database file.
-func (db *DB) Prepare(token, path string) (err error) {
+// token is a token for downloading the database file.
+// path is a path to the database directory.
+// chunks is a number of chunks to split the database file.
+func (db *DB) Prepare(token, path string, chunks int64) (err error) {
 	db.Lock()
 	defer db.Unlock()
 
@@ -52,7 +55,7 @@ func (db *DB) Prepare(token, path string) (err error) {
 		return
 	}
 
-	if db.Chunks, err = split(db.Csv, db.CsvSize/200); err != nil {
+	if db.Chunks, err = split(db.Csv, db.CsvSize/chunks); err != nil {
 		return
 	}
 
