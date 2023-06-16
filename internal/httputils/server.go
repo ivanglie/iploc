@@ -10,7 +10,7 @@ import (
 
 type Server struct {
 	UseSSL   bool
-	URL      string
+	Host     string
 	UseDebug bool
 	Handler  http.Handler
 }
@@ -43,7 +43,7 @@ func (s *Server) listenAndServeTLS() error {
 	autocertManager := autocert.Manager{
 		Cache:      autocert.DirCache("certs"),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(s.URL),
+		HostPolicy: autocert.HostWhitelist(s.Host),
 	}
 
 	if s.UseDebug {

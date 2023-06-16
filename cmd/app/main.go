@@ -17,7 +17,7 @@ var (
 	opts struct {
 		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
 		Ssl   bool   `long:"ssl" env:"SSL" description:"use ssl"`
-		Url   string `long:"url" env:"URL" description:"URL"`
+		Host  string `long:"host" env:"HOST" description:"hostname"`
 		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
 	}
 
@@ -40,13 +40,15 @@ func main() {
 
 	go prepareDB()
 
+	log.Info().Msgf("use ssl: %v, host: %s, use debug: %v", opts.Ssl, opts.Host, opts.Dbg)
+
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", index)
 	handler.HandleFunc("/search", search)
 
 	server := &httputils.Server{
 		UseSSL:   opts.Ssl,
-		URL:      opts.Url,
+		Host:     opts.Host,
 		UseDebug: opts.Dbg,
 		Handler:  handler}
 

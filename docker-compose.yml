@@ -13,4 +13,5 @@ services:
     environment:
       - TOKEN
       - SSL
-      - URL
+      - HOST
+      - DEBUG
