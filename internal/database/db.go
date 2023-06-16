@@ -155,7 +155,7 @@ func (db *DB) Unzip() (err error) {
 	return
 }
 
-// Download IP2Location database specified by token to path.
+// Download IP2Location database (specified by token) to path.
 func (db *DB) Download(token, path string) (err error) {
 	db.Lock()
 	defer db.Unlock()

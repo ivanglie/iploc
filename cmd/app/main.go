@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,22 +9,18 @@ import (
 	log "github.com/rs/zerolog/log"
 
 	"github.com/ivanglie/iploc/internal/database"
-	"github.com/ivanglie/iploc/internal/utils"
+	"github.com/ivanglie/iploc/internal/httputils"
 	"github.com/jessevdk/go-flags"
 )
-
-type IP2Location struct {
-	Token string `json:"token"`
-}
 
 var (
 	opts struct {
 		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
-		Dbg   bool   `long:"dbg" env:"DEBUG" description:"debug mode"`
+		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
 	}
 
-	version = "unknown"
 	db      = &database.DB{}
+	version = "unknown"
 )
 
 func main() {
@@ -41,54 +36,45 @@ func main() {
 
 	setupLog(opts.Dbg)
 
-	go func() {
-		log.Info().Msg("Download...")
-		if err := db.Download(opts.Token, "."); err != nil {
-			log.Fatal().Msgf("error downloading: %v", err)
-		}
-		log.Info().Msg("Download completed")
+	go prepareDB()
 
-		log.Info().Msg("Unzip...")
-		if err := db.Unzip(); err != nil {
-			log.Fatal().Msgf("error unzipping: %v", err)
-		}
-		log.Info().Msg("Unzip completed")
-
-		log.Info().Msg("Split...")
-		db.BufferSize = db.CSVSize / 200
-		if err := db.Split(); err != nil {
-			log.Fatal().Msgf("error splitting: %v", err)
-		}
-		log.Info().Msg("Split completed")
-	}()
-
-	listenAndServe()
-}
-
-func listenAndServe() {
 	handler := http.NewServeMux()
 	handler.HandleFunc("/", index)
 	handler.HandleFunc("/search", search)
 
-	httpServer := &http.Server{
-		Addr:    ":18001",
-		Handler: handler,
-	}
+	server := &httputils.Server{Handler: handler}
 
-	log.Info().Msgf("Listening on port %s", httpServer.Addr)
-	err := httpServer.ListenAndServe()
-
-	if errors.Is(err, http.ErrServerClosed) {
-		log.Panic().Msg("server closed")
-	} else if err != nil {
-		log.Fatal().Msgf("error starting server: %s", err)
+	log.Info().Msg("Listening...")
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatal().Msg(err.Error())
 	}
+}
+
+func prepareDB() {
+	log.Info().Msg("Download...")
+	if err := db.Download(opts.Token, "."); err != nil {
+		log.Fatal().Msgf("error downloading: %v", err)
+	}
+	log.Info().Msg("Download completed")
+
+	log.Info().Msg("Unzip...")
+	if err := db.Unzip(); err != nil {
+		log.Fatal().Msgf("error unzipping: %v", err)
+	}
+	log.Info().Msg("Unzip completed")
+
+	log.Info().Msg("Split...")
+	db.BufferSize = db.CSVSize / 200
+	if err := db.Split(); err != nil {
+		log.Fatal().Msgf("error splitting: %v", err)
+	}
+	log.Info().Msg("Split completed")
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("Index")
 
-	a, _, err := utils.UserIP(r)
+	a, _, err := httputils.UserIP(r)
 	log.Info().Msgf("user ip: %s", a)
 
 	if err != nil {
