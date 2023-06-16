@@ -16,6 +16,8 @@ import (
 var (
 	opts struct {
 		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
+		Ssl   bool   `long:"ssl" env:"SSL" description:"use ssl"`
+		Url   string `long:"url" env:"URL" description:"URL"`
 		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
 	}
 
@@ -42,7 +44,11 @@ func main() {
 	handler.HandleFunc("/", index)
 	handler.HandleFunc("/search", search)
 
-	server := &httputils.Server{Handler: handler}
+	server := &httputils.Server{
+		UseSSL:   opts.Ssl,
+		URL:      opts.Url,
+		UseDebug: opts.Dbg,
+		Handler:  handler}
 
 	log.Info().Msg("Listening...")
 	if err := server.ListenAndServe(); err != nil {
