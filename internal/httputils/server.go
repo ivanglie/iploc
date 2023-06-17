@@ -1,6 +1,7 @@
 package httputils
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 
@@ -8,11 +9,23 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
+const (
+	letsEncryptStagingURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	dir                   = "certs"
+)
+
+type Interface interface {
+	ListenAndServe() error
+	ListenAndServeTLS(certFile string, keyFile string) error
+}
+
 type Server struct {
-	UseSSL   bool
-	Host     string
-	UseDebug bool
-	Handler  http.Handler
+	httpServer  Interface
+	httpsServer Interface
+	UseSSL      bool
+	Host        string
+	UseDebug    bool
+	Handler     http.Handler
 }
 
 // ListenAndServe starts a http server.
@@ -26,54 +39,65 @@ func (s *Server) ListenAndServe() error {
 
 // ListenAndServe starts a http server without TLS.
 func (s *Server) listenAndServe() error {
-	httpServer := &http.Server{
-		Addr:         ":http",
-		Handler:      s.Handler,
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+	s.httpServer = newHTTPServer(s.Handler)
+	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return err
 	}
 
-	return httpServer.ListenAndServe()
+	return nil
 }
 
 // ListenAndServeTLS starts a http server with TLS.
 // If UseDebug is true, it uses the staging server.
 func (s *Server) listenAndServeTLS() error {
-	autocertManager := autocert.Manager{
-		Cache:      autocert.DirCache("certs"),
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(s.Host),
-	}
+	autocertManager := newAutocertManager(s.Host)
 
 	if s.UseDebug {
-		autocertManager.Client = &acme.Client{
-			DirectoryURL: "https://acme-staging-v02.api.letsencrypt.org/directory",
-		}
+		autocertManager.Client = &acme.Client{DirectoryURL: letsEncryptStagingURL}
 	}
 
+	errCh := make(chan error)
 	go func() {
-		httpServer := &http.Server{
-			Addr:         ":http",
-			Handler:      autocertManager.HTTPHandler(nil),
-			IdleTimeout:  time.Minute,
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
+		s.httpServer = newHTTPServer(autocertManager.HTTPHandler(nil))
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
 		}
-
-		httpServer.ListenAndServe()
 	}()
 
-	httpServer := &http.Server{
-		Addr:         ":https",
-		Handler:      s.Handler,
-		TLSConfig:    autocertManager.TLSConfig(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+	s.httpsServer = newHTTPSServer(s.Handler, autocertManager.TLSConfig())
+	if err := s.httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+		return err
 	}
 
-	err := httpServer.ListenAndServeTLS("", "")
+	return <-errCh
+}
 
-	return err
+// newHTTPSServer creates a HTTPS server.
+func newHTTPSServer(h http.Handler, tlsConfig *tls.Config) *http.Server {
+	return &http.Server{
+		Addr:              ":https",
+		Handler:           h,
+		TLSConfig:         tlsConfig,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
+}
+
+// newHTTPServer creates a HTTP server.
+func newHTTPServer(h http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              ":http",
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       30 * time.Second,
+	}
+}
+
+// newAutocertManager creates a new ACME autocert manager.
+func newAutocertManager(hosts ...string) autocert.Manager {
+	return autocert.Manager{
+		Cache:      autocert.DirCache(dir),
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(hosts...),
+	}
 }
