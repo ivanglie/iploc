@@ -10,8 +10,12 @@ import (
 )
 
 const (
+	// The ACME URL for our ACME v2 staging environment.
+	// See https://letsencrypt.org/docs/staging-environment/ for more details.
 	letsEncryptStagingURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
-	dir                   = "certs"
+
+	// The directory where the certificates are stored.
+	dir = "certs"
 )
 
 type Interface interface {
