@@ -8,6 +8,10 @@ services:
     container_name: "iploc"
     restart: always
     ports:
-      - "80:18001"
+      - "80:80"
+      - "443:443"
     environment:
       - TOKEN
+      - SSL
+      - HOST
+      - DEBUG

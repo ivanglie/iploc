@@ -1,11 +1,5 @@
-### Search 8.8.8.8 on port 18001
-GET http://localhost:18001/search?ip=8.8.8.8
-
-### Search 2001:4860:4860:0:0:0:0:8888 on port 18001
-GET http://localhost:18001/search?ip=2001:4860:4860:0:0:0:0:8888
-
-### Search 8.8.8.8 on port 80
+### Search 8.8.8.8
 GET http://localhost/search?ip=8.8.8.8
 
-### Search 2001:4860:4860:0:0:0:0:8888 on port 80
+### Search 2001:4860:4860:0:0:0:0:8888
 GET http://localhost/search?ip=2001:4860:4860:0:0:0:0:8888
