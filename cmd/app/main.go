@@ -40,20 +40,16 @@ func main() {
 
 	go prepareDB()
 
-	log.Info().Msgf("use ssl: %v, host: %s, use debug: %v", opts.Ssl, opts.Host, opts.Dbg)
+	h := http.NewServeMux()
+	h.HandleFunc("/", index)
+	h.HandleFunc("/search", search)
 
-	handler := http.NewServeMux()
-	handler.HandleFunc("/", index)
-	handler.HandleFunc("/search", search)
-
-	server := &httputils.Server{
-		UseSSL:   opts.Ssl,
-		Host:     opts.Host,
-		UseDebug: opts.Dbg,
-		Handler:  handler}
+	s := httputils.NewServer(h, opts.Ssl, opts.Host, opts.Dbg)
 
 	log.Info().Msg("Listening...")
-	if err := server.ListenAndServe(); err != nil {
+	log.Info().Msg(s.String())
+
+	if err := s.ListenAndServe(); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
 }

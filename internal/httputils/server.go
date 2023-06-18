@@ -1,8 +1,11 @@
 package httputils
 
 import (
-	"crypto/tls"
+	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/acme"
@@ -21,54 +24,81 @@ const (
 type Interface interface {
 	ListenAndServe() error
 	ListenAndServeTLS(certFile string, keyFile string) error
+	Shutdown(ctx context.Context) error
 }
 
 type Server struct {
-	httpServer  Interface
-	httpsServer Interface
-	UseSSL      bool
-	Host        string
-	UseDebug    bool
-	Handler     http.Handler
+	sync.RWMutex
+	httpServer      Interface
+	httpsServer     Interface
+	defaultHandler  http.Handler
+	useSSL          bool
+	host            string
+	autocertManager autocert.Manager
+	useStaging      bool
 }
 
-// ListenAndServe starts a http server.
+// NewServer creates a new Server.
+func NewServer(handler http.Handler, useSSL bool, host string, useStaging bool) *Server {
+	s := &Server{
+		defaultHandler: handler,
+		useSSL:         useSSL,
+		host:           host,
+		useStaging:     useStaging,
+	}
+
+	if !s.useSSL {
+		s.useStaging = false
+		s.createHTTP(nil)
+		return s
+	}
+
+	if len(s.host) == 0 {
+		return nil
+	}
+
+	s.autocertManager = autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist(host),
+		Cache:      autocert.DirCache(dir),
+	}
+
+	s.createHTTP(s.autocertManager.HTTPHandler(nil)) // Redirects all http requests to https
+
+	if !s.useStaging {
+		return s
+	}
+
+	s.autocertManager.Client = &acme.Client{DirectoryURL: letsEncryptStagingURL}
+	s.createHTTPS()
+
+	return s
+}
+
+// ListenAndServe starts a https server.
 func (s *Server) ListenAndServe() error {
-	if s.UseSSL {
-		return s.listenAndServeTLS()
+	s.Lock()
+	defer s.Unlock()
+
+	if s.httpServer != nil {
+		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			return err
+		}
+
+		return nil
 	}
 
-	return s.listenAndServe()
-}
-
-// ListenAndServe starts a http server without TLS.
-func (s *Server) listenAndServe() error {
-	s.httpServer = newHTTPServer(s.Handler)
-	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
-	}
-
-	return nil
-}
-
-// ListenAndServeTLS starts a http server with TLS.
-// If UseDebug is true, it uses the staging server.
-func (s *Server) listenAndServeTLS() error {
-	autocertManager := newAutocertManager(s.Host)
-
-	if s.UseDebug {
-		autocertManager.Client = &acme.Client{DirectoryURL: letsEncryptStagingURL}
+	if s.httpsServer == nil {
+		return errors.New("no server to start")
 	}
 
 	errCh := make(chan error)
 	go func() {
-		s.httpServer = newHTTPServer(autocertManager.HTTPHandler(nil))
 		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
 
-	s.httpsServer = newHTTPSServer(s.Handler, autocertManager.TLSConfig())
 	if err := s.httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 		return err
 	}
@@ -76,32 +106,74 @@ func (s *Server) listenAndServeTLS() error {
 	return <-errCh
 }
 
-// newHTTPSServer creates a HTTPS server.
-func newHTTPSServer(h http.Handler, tlsConfig *tls.Config) *http.Server {
-	return &http.Server{
+// Shutdown gracefully shuts down the server without interrupting any active connections.
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.Lock()
+	defer s.Unlock()
+
+	for _, server := range []Interface{s.httpServer, s.httpsServer} {
+		if server == nil {
+			continue
+		}
+
+		if err := server.Shutdown(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createHTTPS creates a HTTPS server.
+func (s *Server) createHTTPS() error {
+	s.Lock()
+	defer s.Unlock()
+
+	s.httpsServer = &http.Server{
 		Addr:              ":https",
-		Handler:           h,
-		TLSConfig:         tlsConfig,
+		Handler:           s.defaultHandler,
+		TLSConfig:         s.autocertManager.TLSConfig(),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       30 * time.Second,
 	}
+
+	return nil
 }
 
-// newHTTPServer creates a HTTP server.
-func newHTTPServer(h http.Handler) *http.Server {
-	return &http.Server{
+// createHTTP creates a HTTP server.
+// If h is nil, it uses the s.DefaultHandler.
+func (s *Server) createHTTP(h http.Handler) {
+	s.Lock()
+	defer s.Unlock()
+
+	handler := s.defaultHandler
+	if h != nil {
+		handler = h
+	}
+
+	s.httpServer = &http.Server{
 		Addr:              ":http",
-		Handler:           h,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       30 * time.Second,
 	}
 }
 
-// newAutocertManager creates a new ACME autocert manager.
-func newAutocertManager(hosts ...string) autocert.Manager {
-	return autocert.Manager{
-		Cache:      autocert.DirCache(dir),
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(hosts...),
+// String is the string representation of the server.
+func (s *Server) String() string {
+	s.RLock()
+	defer s.RUnlock()
+
+	var httpInterface interface{} = s.httpServer
+	httpValue := httpInterface.(*http.Server)
+
+	if s.httpsServer != nil && s.httpServer != nil {
+		var httpsInterface interface{} = s.httpsServer
+		httpsValue := httpsInterface.(*http.Server)
+
+		return fmt.Sprintf("Server{%s, SSL: %v, %s, CacheDir: %v, Staging: %v}",
+			httpValue.Addr, s.useSSL, httpsValue.Addr, s.autocertManager.Cache, s.useStaging)
 	}
+
+	return fmt.Sprintf("Server{%s, SSL: %v, Staging: %v}", httpValue.Addr, s.useSSL, s.useStaging)
 }
