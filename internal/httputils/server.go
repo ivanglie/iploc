@@ -2,7 +2,6 @@ package httputils
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -47,12 +46,14 @@ func NewServer(handler http.Handler, useSSL bool, host string, useStaging bool) 
 		useStaging:     useStaging,
 	}
 
+	// HTTP only
 	if !s.useSSL {
 		s.useStaging = false
-		s.createHTTP(nil)
+		s.createHTTP(s.defaultHandler)
 		return s
 	}
 
+	// HTTPS and HTTP (for redirect to HTTPS)
 	if len(s.host) == 0 {
 		return nil
 	}
@@ -63,9 +64,10 @@ func NewServer(handler http.Handler, useSSL bool, host string, useStaging bool) 
 		Cache:      autocert.DirCache(dir),
 	}
 
-	s.createHTTP(s.autocertManager.HTTPHandler(nil)) // Redirects all http requests to https
+	s.createHTTP(s.autocertManager.HTTPHandler(nil)) // Redirects all HTTP requests to HTTPS
 
 	if !s.useStaging {
+		s.createHTTPS() // Don't using staging URL
 		return s
 	}
 
@@ -80,16 +82,12 @@ func (s *Server) ListenAndServe() error {
 	s.Lock()
 	defer s.Unlock()
 
-	if s.httpServer != nil {
+	if !s.useSSL {
 		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			return err
 		}
 
 		return nil
-	}
-
-	if s.httpsServer == nil {
-		return errors.New("no server to start")
 	}
 
 	errCh := make(chan error)
@@ -146,14 +144,9 @@ func (s *Server) createHTTP(h http.Handler) {
 	s.Lock()
 	defer s.Unlock()
 
-	handler := s.defaultHandler
-	if h != nil {
-		handler = h
-	}
-
 	s.httpServer = &http.Server{
 		Addr:              ":http",
-		Handler:           handler,
+		Handler:           h,
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       30 * time.Second,
 	}

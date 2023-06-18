@@ -35,20 +35,20 @@ func TestMain(m *testing.M) {
 
 func TestServer_ListerAndServe(t *testing.T) {
 	// HTTP
-	s := NewServer(handler, false, "", false)
-	assert.NotNil(t, s.httpServer)
-	assert.Nil(t, s.httpsServer)
+	hs := NewServer(handler, false, "", false)
+	assert.NotNil(t, hs.httpServer)
+	assert.Nil(t, hs.httpsServer)
 
-	go s.ListenAndServe()
-	s.Shutdown(context.TODO())
+	go hs.ListenAndServe()
+	hs.Shutdown(context.TODO())
 
-	// HTTPS
-	s = NewServer(handler, true, "example.com", true)
-	assert.NotNil(t, s.httpServer)
-	assert.NotNil(t, s.httpsServer)
+	// HTTPS + HTTP + Staging
+	hss := NewServer(handler, true, "example.com", true)
+	assert.NotNil(t, hss.httpServer)
+	assert.NotNil(t, hss.httpsServer)
 
-	go s.ListenAndServe()
-	s.Shutdown(context.TODO())
+	go hss.ListenAndServe()
+	hss.Shutdown(context.TODO())
 }
 
 func TestServer_createHTTPS(t *testing.T) {
