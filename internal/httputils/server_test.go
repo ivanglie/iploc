@@ -91,13 +91,22 @@ func TestServer_ListerAndServe_HTTPS(t *testing.T) {
 }
 
 func TestServer_Shutdown_HTTP(t *testing.T) {
-	s := NewServer(mockHandler, false, "", false)
-	assert.NotNil(t, s.httpServer)
-	assert.Nil(t, s.httpsServer)
+	s := NewServer(mockHandler, true, "example.com", true)
 
 	s.httpServer = mockHTTPServer
 	s.httpsServer = mockHTTPServer
 
+	assert.NoError(t, s.Shutdown(context.TODO()))
+
+	// Error
+	s = NewServer(mockHandler, true, "example.com", true)
+	s.httpServer = mockHTTPServerError
+	s.httpsServer = mockHTTPServerError
+
+	assert.Error(t, s.Shutdown(context.TODO()))
+
+	// Have no any servers
+	s = &Server{}
 	assert.NoError(t, s.Shutdown(context.TODO()))
 }
 
