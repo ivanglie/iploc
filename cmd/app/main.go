@@ -21,7 +21,7 @@ var (
 		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
 	}
 
-	db      = database.NewDB()
+	db      *database.DB
 	version = "unknown"
 )
 
@@ -38,41 +38,24 @@ func main() {
 
 	setupLog(opts.Dbg)
 
-	go prepareDB()
+	db = database.NewDB()
+	go func() {
+		if err := db.Init(opts.Token, "."); err != nil {
+			log.Error().Msg(err.Error())
+		}
+	}()
 
 	h := http.NewServeMux()
 	h.HandleFunc("/", index)
 	h.HandleFunc("/search", search)
 
 	s := httputils.NewServer(h, opts.Ssl, opts.Host, opts.Dbg)
-
-	log.Info().Msg("Listening...")
 	log.Info().Msg(s.String())
 
+	log.Info().Msg("Listening...")
 	if err := s.ListenAndServe(); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
-}
-
-func prepareDB() {
-	log.Info().Msg("Download...")
-	if err := db.Download(opts.Token, "."); err != nil {
-		log.Fatal().Msgf("error downloading: %v", err)
-	}
-	log.Info().Msg("Download completed")
-
-	log.Info().Msg("Unzip...")
-	if err := db.Unzip(); err != nil {
-		log.Fatal().Msgf("error unzipping: %v", err)
-	}
-	log.Info().Msg("Unzip completed")
-
-	log.Info().Msg("Split...")
-	db.BufferSize = db.CSVSize / 200
-	if err := db.Split(); err != nil {
-		log.Fatal().Msgf("error splitting: %v", err)
-	}
-	log.Info().Msg("Split completed")
 }
 
 func index(w http.ResponseWriter, r *http.Request) {

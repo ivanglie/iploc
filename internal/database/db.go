@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -24,8 +26,17 @@ type httpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
+type downloaderFunc func(token, path string) error
+type unzipperFunc func() error
+type splitterFunc func() error
+
 type DB struct {
 	sync.RWMutex
+
+	downloadFunc downloaderFunc
+	unzipFunc    unzipperFunc
+	splitFunc    splitterFunc
+
 	httpClient httpClient
 
 	zip        string
@@ -37,7 +48,35 @@ type DB struct {
 }
 
 func NewDB() *DB {
-	return &DB{httpClient: &http.Client{}}
+	db := &DB{httpClient: &http.Client{}}
+	db.downloadFunc = db.download
+	db.unzipFunc = db.unzip
+	db.splitFunc = db.split
+
+	return db
+}
+
+func (db *DB) Init(token, path string) error {
+	log.Info().Msg("Download...")
+	if err := db.downloadFunc(token, path); err != nil {
+		return fmt.Errorf("downloading: %v", err)
+	}
+	log.Info().Msg("Download completed")
+
+	log.Info().Msg("Unzip...")
+	if err := db.unzipFunc(); err != nil {
+		return fmt.Errorf("unzipping: %v", err)
+	}
+	log.Info().Msg("Unzip completed")
+
+	log.Info().Msg("Split...")
+	db.BufferSize = db.CSVSize / 200
+	if err := db.splitFunc(); err != nil {
+		return fmt.Errorf("splitting: %v", err)
+	}
+	log.Info().Msg("Split completed")
+
+	return nil
 }
 
 // Search for a given IP address and return a Loc struct.
@@ -48,8 +87,8 @@ func (db *DB) Search(address string) (*Loc, error) {
 	return search(address, db.chunks)
 }
 
-// Split CSV file.
-func (db *DB) Split() (err error) {
+// split CSV file.
+func (db *DB) split() (err error) {
 	db.Lock()
 	defer db.Unlock()
 
@@ -96,8 +135,8 @@ func (db *DB) Split() (err error) {
 	return
 }
 
-// Unzip file.
-func (db *DB) Unzip() (err error) {
+// unzip file.
+func (db *DB) unzip() (err error) {
 	db.Lock()
 	defer db.Unlock()
 
@@ -155,8 +194,8 @@ func (db *DB) Unzip() (err error) {
 	return
 }
 
-// Download IP2Location database (specified by token) to path.
-func (db *DB) Download(token, path string) (err error) {
+// download IP2Location database (specified by token) to path.
+func (db *DB) download(token, path string) (err error) {
 	db.Lock()
 	defer db.Unlock()
 
