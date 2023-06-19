@@ -92,7 +92,7 @@ func TestDB_Split(t *testing.T) {
 	assert.Equal(t, "db.csvSize is 0", err.Error())
 
 	// Empty db.csv error
-	db = &DB{}
+	db = NewDB()
 	err = db.Split()
 	assert.Equal(t, "empty db.csv", err.Error())
 }
@@ -105,7 +105,7 @@ func TestDB_Unzip(t *testing.T) {
 	assert.Equal(t, int64(3068), db.CSVSize)
 
 	// Empty db.zip error
-	db = &DB{}
+	db = NewDB()
 	err = db.Unzip()
 	assert.Equal(t, "empty db.zip", err.Error())
 
@@ -116,9 +116,8 @@ func TestDB_Unzip(t *testing.T) {
 }
 
 func TestDB_Download(t *testing.T) {
-	customClient = &mockClient{}
-
-	db := &DB{}
+	db := NewDB()
+	db.httpClient = &mockClient{}
 	err := db.Download("token", "../../test/data/")
 	assert.NoError(t, err)
 	assert.Equal(t, code+".zip", filepath.Base(db.zip))
@@ -127,21 +126,19 @@ func TestDB_Download(t *testing.T) {
 	os.Remove("../../test/data/" + code + ".zip")
 
 	// Bad status error
-	customClient = &badStatusClient{}
-
-	db = &DB{}
+	db = NewDB()
+	db.httpClient = &badStatusClient{}
 	err = db.Download("token", "../../test/data/")
 	assert.Equal(t, "error 503 Service Unavailable", err.Error())
 
 	// Empty path error
-	db = &DB{}
+	db = NewDB()
 	err = db.Download("token", "")
 	assert.Equal(t, "empty path", err.Error())
 
 	// Something went wrong error
-	customClient = &errorClient{}
-
-	db = &DB{}
+	db = NewDB()
+	db.httpClient = &errorClient{}
 	err = db.Download("token", "../../test/data/")
 	assert.Equal(t, "something went wrong", err.Error())
 }

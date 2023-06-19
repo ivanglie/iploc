@@ -28,6 +28,7 @@ type Interface interface {
 
 type Server struct {
 	sync.RWMutex
+
 	httpServer      Interface
 	httpsServer     Interface
 	defaultHandler  http.Handler

@@ -20,8 +20,14 @@ const (
 	code    = "DB11LITEIPV6"                         // IP2Location IPv4 and IPv6 Database Code
 )
 
+type httpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type DB struct {
 	sync.RWMutex
+	httpClient httpClient
+
 	zip        string
 	zipSize    int64
 	csv        string
@@ -30,14 +36,8 @@ type DB struct {
 	BufferSize int64
 }
 
-type CustomClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-var customClient CustomClient
-
-func init() {
-	customClient = &http.Client{}
+func NewDB() *DB {
+	return &DB{httpClient: &http.Client{}}
 }
 
 // Search for a given IP address and return a Loc struct.
@@ -171,7 +171,7 @@ func (db *DB) Download(token, path string) (err error) {
 	}
 
 	var resp *http.Response
-	if resp, err = customClient.Do(req); err != nil {
+	if resp, err = db.httpClient.Do(req); err != nil {
 		return
 	}
 	defer resp.Body.Close()

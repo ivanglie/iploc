@@ -21,7 +21,7 @@ var (
 		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
 	}
 
-	db      = &database.DB{}
+	db      = database.NewDB()
 	version = "unknown"
 )
 
