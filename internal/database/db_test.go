@@ -12,10 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type MockClient struct {
-}
+type mockClient struct{}
 
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
+func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -26,10 +25,9 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type MockClientBadStatus struct {
-}
+type badStatusClient struct{}
 
-func (m *MockClientBadStatus) Do(req *http.Request) (*http.Response, error) {
+func (m *badStatusClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -41,10 +39,9 @@ func (m *MockClientBadStatus) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type MockClientError struct {
-}
+type errorClient struct{}
 
-func (m *MockClientError) Do(req *http.Request) (*http.Response, error) {
+func (m *errorClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -54,6 +51,29 @@ func (m *MockClientError) Do(req *http.Request) (*http.Response, error) {
 		Status:     "Service Unavailable",
 		Body:       respBody,
 	}, errors.New("something went wrong")
+}
+
+func TestDB_Init(t *testing.T) {
+	db := NewDB()
+	db.downloadFunc = func(url, path string) error { return nil }
+	db.unzipFunc = func() error { return nil }
+	db.splitFunc = func() error { return nil }
+
+	assert.NoError(t, db.Init("token", "path"))
+
+	// Download error
+	db.downloadFunc = func(url, path string) error { return errors.New("download error") }
+	assert.Error(t, db.Init("token", "path"))
+
+	// Unzip error
+	db.downloadFunc = func(url, path string) error { return nil }
+	db.unzipFunc = func() error { return errors.New("unzip error") }
+	assert.Error(t, db.Init("token", "path"))
+
+	// Split error
+	db.unzipFunc = func() error { return nil }
+	db.splitFunc = func() error { return errors.New("split error") }
+	assert.Error(t, db.Init("token", "path"))
 }
 
 func TestDB_Search(t *testing.T) {
@@ -72,13 +92,13 @@ func TestDB_Search(t *testing.T) {
 	assert.Equal(t, "-07:00", loc.Properties[TimeZone])
 }
 
-func TestDB_Split(t *testing.T) {
+func TestDB_split(t *testing.T) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	info, _ := f.Stat()
 	csvSize := info.Size()
 
 	db := &DB{csv: "../../test/data/DB.CSV", CSVSize: csvSize, BufferSize: 1024}
-	err := db.Split()
+	err := db.split()
 	assert.NoError(t, err)
 	assert.Equal(t, "DB_0001.CSV", filepath.Base(db.chunks[0]))
 	assert.Equal(t, "DB_0002.CSV", filepath.Base(db.chunks[1]))
@@ -86,43 +106,42 @@ func TestDB_Split(t *testing.T) {
 
 	// File not found
 	db = &DB{csv: "../../test/data/DB1.CSV", CSVSize: csvSize, BufferSize: 1024}
-	err = db.Split()
+	err = db.split()
 	assert.ErrorIs(t, err, os.ErrNotExist)
 
 	// db.csvSize is 0 error
 	db = &DB{csv: "../../test/data/DB.CSV"}
-	err = db.Split()
+	err = db.split()
 	assert.Equal(t, "db.csvSize is 0", err.Error())
 
 	// Empty db.csv error
-	db = &DB{}
-	err = db.Split()
+	db = NewDB()
+	err = db.split()
 	assert.Equal(t, "empty db.csv", err.Error())
 }
 
-func TestDB_Unzip(t *testing.T) {
+func TestDB_unzip(t *testing.T) {
 	db := &DB{zip: "../../test/data/DB.zip"}
-	err := db.Unzip()
+	err := db.unzip()
 	assert.NoError(t, err)
 	assert.Equal(t, "DB.CSV", filepath.Base(db.csv))
 	assert.Equal(t, int64(3068), db.CSVSize)
 
 	// Empty db.zip error
-	db = &DB{}
-	err = db.Unzip()
+	db = NewDB()
+	err = db.unzip()
 	assert.Equal(t, "empty db.zip", err.Error())
 
 	// File not found
 	db = &DB{zip: "../../test/data/DB1.zip"}
-	err = db.Unzip()
+	err = db.unzip()
 	assert.ErrorIs(t, err, os.ErrNotExist)
 }
 
-func TestDB_Download(t *testing.T) {
-	customClient = &MockClient{}
-
-	db := &DB{}
-	err := db.Download("token", "../../test/data/")
+func TestDB_download(t *testing.T) {
+	db := NewDB()
+	db.httpClient = &mockClient{}
+	err := db.download("token", "../../test/data/")
 	assert.NoError(t, err)
 	assert.Equal(t, code+".zip", filepath.Base(db.zip))
 	assert.Equal(t, int64(1254), db.zipSize)
@@ -130,22 +149,20 @@ func TestDB_Download(t *testing.T) {
 	os.Remove("../../test/data/" + code + ".zip")
 
 	// Bad status error
-	customClient = &MockClientBadStatus{}
-
-	db = &DB{}
-	err = db.Download("token", "../../test/data/")
+	db = NewDB()
+	db.httpClient = &badStatusClient{}
+	err = db.download("token", "../../test/data/")
 	assert.Equal(t, "error 503 Service Unavailable", err.Error())
 
 	// Empty path error
-	db = &DB{}
-	err = db.Download("token", "")
+	db = NewDB()
+	err = db.download("token", "")
 	assert.Equal(t, "empty path", err.Error())
 
 	// Something went wrong error
-	customClient = &MockClientError{}
-
-	db = &DB{}
-	err = db.Download("token", "../../test/data/")
+	db = NewDB()
+	db.httpClient = &errorClient{}
+	err = db.download("token", "../../test/data/")
 	assert.Equal(t, "something went wrong", err.Error())
 }
 
