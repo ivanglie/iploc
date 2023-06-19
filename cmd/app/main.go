@@ -87,7 +87,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/search?ip="+a, http.StatusSeeOther)
+	http.Redirect(w, r, "/search?ip="+a, http.StatusTemporaryRedirect)
 }
 
 func search(w http.ResponseWriter, r *http.Request) {

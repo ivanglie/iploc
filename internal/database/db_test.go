@@ -12,8 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type MockClient struct {
-}
+type MockClient struct{}
 
 func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
@@ -26,10 +25,9 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type MockClientBadStatus struct {
-}
+type BadStatusClient struct{}
 
-func (m *MockClientBadStatus) Do(req *http.Request) (*http.Response, error) {
+func (m *BadStatusClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -41,10 +39,9 @@ func (m *MockClientBadStatus) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type MockClientError struct {
-}
+type ErrorClient struct{}
 
-func (m *MockClientError) Do(req *http.Request) (*http.Response, error) {
+func (m *ErrorClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -55,6 +52,12 @@ func (m *MockClientError) Do(req *http.Request) (*http.Response, error) {
 		Body:       respBody,
 	}, errors.New("something went wrong")
 }
+
+var (
+	mockClient      *MockClient
+	badStatusClient *BadStatusClient
+	errorClient     *ErrorClient
+)
 
 func TestDB_Search(t *testing.T) {
 	db := &DB{chunks: []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"}}
@@ -119,7 +122,7 @@ func TestDB_Unzip(t *testing.T) {
 }
 
 func TestDB_Download(t *testing.T) {
-	customClient = &MockClient{}
+	customClient = mockClient
 
 	db := &DB{}
 	err := db.Download("token", "../../test/data/")
@@ -130,7 +133,7 @@ func TestDB_Download(t *testing.T) {
 	os.Remove("../../test/data/" + code + ".zip")
 
 	// Bad status error
-	customClient = &MockClientBadStatus{}
+	customClient = badStatusClient
 
 	db = &DB{}
 	err = db.Download("token", "../../test/data/")
@@ -142,7 +145,7 @@ func TestDB_Download(t *testing.T) {
 	assert.Equal(t, "empty path", err.Error())
 
 	// Something went wrong error
-	customClient = &MockClientError{}
+	customClient = errorClient
 
 	db = &DB{}
 	err = db.Download("token", "../../test/data/")

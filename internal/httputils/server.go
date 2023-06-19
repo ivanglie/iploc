@@ -139,7 +139,6 @@ func (s *Server) createHTTPS() error {
 }
 
 // createHTTP creates a HTTP server.
-// If h is nil, it uses the s.DefaultHandler.
 func (s *Server) createHTTP(h http.Handler) {
 	s.Lock()
 	defer s.Unlock()

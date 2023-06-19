@@ -24,24 +24,24 @@ func (m *MockHTTPServer) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-type MockHTTPServerError struct{}
+type ErrorHTTPServer struct{}
 
-func (m *MockHTTPServerError) ListenAndServe() error {
+func (m *ErrorHTTPServer) ListenAndServe() error {
 	return assert.AnError
 }
 
-func (m *MockHTTPServerError) ListenAndServeTLS(certFile string, keyFile string) error {
+func (m *ErrorHTTPServer) ListenAndServeTLS(certFile string, keyFile string) error {
 	return assert.AnError
 }
 
-func (m *MockHTTPServerError) Shutdown(ctx context.Context) error {
+func (m *ErrorHTTPServer) Shutdown(ctx context.Context) error {
 	return assert.AnError
 }
 
 var (
-	mockHandler         *http.ServeMux
-	mockHTTPServer      *MockHTTPServer
-	mockHTTPServerError *MockHTTPServerError
+	mockHandler     *http.ServeMux
+	mockHTTPServer  *MockHTTPServer
+	errorHTTPServer *ErrorHTTPServer
 )
 
 func setUp() {
@@ -49,15 +49,12 @@ func setUp() {
 	mockHandler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-
-	mockHTTPServer = &MockHTTPServer{}
-	mockHTTPServerError = &MockHTTPServerError{}
 }
 
 func tearDown() {
 	mockHandler = nil
 	mockHTTPServer = nil
-	mockHTTPServerError = nil
+	errorHTTPServer = nil
 }
 
 func TestMain(m *testing.M) {
@@ -77,15 +74,15 @@ func TestServer_ListerAndServe_HTTP(t *testing.T) {
 
 	// Error
 	s = NewServer(mockHandler, false, "", false)
-	s.httpServer = mockHTTPServerError
+	s.httpServer = errorHTTPServer
 	assert.Error(t, s.ListenAndServe())
 }
 
 func TestServer_ListerAndServe_HTTPS(t *testing.T) {
 	// Error
 	s := NewServer(mockHandler, true, "example.com", true)
-	s.httpServer = mockHTTPServerError
-	s.httpsServer = mockHTTPServerError
+	s.httpServer = errorHTTPServer
+	s.httpsServer = errorHTTPServer
 
 	assert.Error(t, s.ListenAndServe())
 }
@@ -100,8 +97,8 @@ func TestServer_Shutdown_HTTP(t *testing.T) {
 
 	// Error
 	s = NewServer(mockHandler, true, "example.com", true)
-	s.httpServer = mockHTTPServerError
-	s.httpsServer = mockHTTPServerError
+	s.httpServer = errorHTTPServer
+	s.httpsServer = errorHTTPServer
 
 	assert.Error(t, s.Shutdown(context.TODO()))
 
@@ -135,7 +132,6 @@ func TestServer_createHTTPS(t *testing.T) {
 	// Empty host error
 	s = NewServer(mockHandler, true, "", true)
 	assert.Nil(t, s)
-
 }
 
 func TestServer_createHTTP(t *testing.T) {
