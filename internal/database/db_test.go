@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type MockClient struct{}
+type mockClient struct{}
 
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
+func (m *mockClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -25,9 +25,9 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type BadStatusClient struct{}
+type badStatusClient struct{}
 
-func (m *BadStatusClient) Do(req *http.Request) (*http.Response, error) {
+func (m *badStatusClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -39,9 +39,9 @@ func (m *BadStatusClient) Do(req *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-type ErrorClient struct{}
+type errorClient struct{}
 
-func (m *ErrorClient) Do(req *http.Request) (*http.Response, error) {
+func (m *errorClient) Do(req *http.Request) (*http.Response, error) {
 	f, _ := os.Open("../../test/data/DB.zip")
 	r := bufio.NewReader(f)
 	respBody := io.NopCloser(r)
@@ -52,12 +52,6 @@ func (m *ErrorClient) Do(req *http.Request) (*http.Response, error) {
 		Body:       respBody,
 	}, errors.New("something went wrong")
 }
-
-var (
-	mockClient      *MockClient
-	badStatusClient *BadStatusClient
-	errorClient     *ErrorClient
-)
 
 func TestDB_Search(t *testing.T) {
 	db := &DB{chunks: []string{"../../test/data/DB_0001.CSV", "../../test/data/DB_0002.CSV", "../../test/data/DB_0003.CSV"}}
@@ -122,7 +116,7 @@ func TestDB_Unzip(t *testing.T) {
 }
 
 func TestDB_Download(t *testing.T) {
-	customClient = mockClient
+	customClient = &mockClient{}
 
 	db := &DB{}
 	err := db.Download("token", "../../test/data/")
@@ -133,7 +127,7 @@ func TestDB_Download(t *testing.T) {
 	os.Remove("../../test/data/" + code + ".zip")
 
 	// Bad status error
-	customClient = badStatusClient
+	customClient = &badStatusClient{}
 
 	db = &DB{}
 	err = db.Download("token", "../../test/data/")
@@ -145,7 +139,7 @@ func TestDB_Download(t *testing.T) {
 	assert.Equal(t, "empty path", err.Error())
 
 	// Something went wrong error
-	customClient = errorClient
+	customClient = &errorClient{}
 
 	db = &DB{}
 	err = db.Download("token", "../../test/data/")
