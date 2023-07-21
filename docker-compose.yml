@@ -4,8 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: iploc:latest
-    container_name: "iploc"
+    image: ivanglie/iploc:latest
+    container_name: iploc
     restart: always
     ports:
       - "80:80"

@@ -28,7 +28,7 @@ jobs:
           
         - name: Save image
           run: |
-            sudo docker save -o iploc.tar iploc:latest
+            sudo docker save -o iploc.tar ivanglie/iploc:latest
             sudo chmod 777 iploc.tar
 
         - name: Copy files to remote host
