@@ -7,12 +7,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:  
-        - uses: actions/checkout@v3
-
+    steps:
         - name: Check Base Branch
-          run: |
-            echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+          uses: actions/checkout@v3
+          run: echo running on branch ${GITHUB_REF##*/}
 
         #     if [[ "${{ github.event.pull_request.base.ref }}" == "refs/heads/feature"* ]] ||
         #       [[ "${{ github.event.pull_request.base.ref }}" == "refs/heads/fix"* ]]; then
