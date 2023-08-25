@@ -6,10 +6,19 @@ on:
 
 jobs:
   build:
-    if: ${{contains(github.event.pull_request.base.ref, 'feature/') || contains(github.event.pull_request.base.ref, 'fix/')}}
     runs-on: ubuntu-latest
     steps:  
         - uses: actions/checkout@v3
+
+        - name: Check Base Branch
+          run: |
+            if [[ "${{ github.event.pull_request.base.ref }}" == "refs/heads/feature"* ]] ||
+              [[ "${{ github.event.pull_request.base.ref }}" == "refs/heads/fix"* ]]; then
+              echo "Base branch is a feature or fix branch."
+            else
+              echo "Base branch is not a feature or fix branch. Skipping."
+              exit 78
+            fi
         
         - name: Setup SSH key
           run: |
