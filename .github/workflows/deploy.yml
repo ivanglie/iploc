@@ -12,7 +12,6 @@ jobs:
       - name: Check Base Branch
         run: echo "github.ref=${{ github.ref }}"
 
-
         #     if [[ "${{ github.event.pull_request.base.ref }}" == "refs/heads/feature"* ]] ||
         #       [[ "${{ github.event.pull_request.base.ref }}" == "refs/heads/fix"* ]]; then
         #       echo "Base branch is a feature or fix branch."
