@@ -17,7 +17,7 @@ Web service that identifies the country, region or state, city, latitude and lon
 Search location:
 
 ```code
-GET http://localhost:9000/search?ip=8.8.8.8
+curl http://localhost/search?ip=8.8.8.8
 ```
 
 Output:
