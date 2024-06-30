@@ -15,6 +15,9 @@ func TestSetLogConfig(t *testing.T) {
 
 	SetLogConfig(zerolog.InfoLevel, &buf)
 	assert.Equal(t, zerolog.InfoLevel, zlogger.GetLevel(), "Log level should be set to Info")
+
+	SetLogConfig(zerolog.ErrorLevel, nil)
+	assert.Equal(t, zerolog.ErrorLevel, zlogger.GetLevel(), "Log level should be set to Error")
 }
 
 func TestLogLevels(t *testing.T) {
