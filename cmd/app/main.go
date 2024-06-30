@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/ivanglie/iploc/pkg/log"
 	"github.com/rs/zerolog"
-	log "github.com/rs/zerolog/log"
 
 	"github.com/ivanglie/iploc/internal/database"
 	"github.com/ivanglie/iploc/internal/httputils"
@@ -31,17 +31,19 @@ func main() {
 	p := flags.NewParser(&opts, flags.PrintErrors|flags.PassDoubleDash|flags.HelpFlag)
 	if _, err := p.Parse(); err != nil {
 		if err.(*flags.Error).Type != flags.ErrHelp {
-			log.Printf("[ERROR] iploc error: %v", err)
+			fmt.Printf("[ERROR] iploc error: %v", err)
 		}
 		os.Exit(2)
 	}
 
-	setupLog(opts.Dbg)
+	if opts.Dbg {
+		log.SetLogConfig(zerolog.DebugLevel, os.Stdout)
+	}
 
 	db = database.NewDB()
 	go func() {
 		if err := db.Init(opts.Token, "."); err != nil {
-			log.Error().Msg(err.Error())
+			log.Error(err.Error())
 		}
 	}()
 
@@ -50,22 +52,22 @@ func main() {
 	h.HandleFunc("/search", search)
 
 	s := httputils.NewServer(h, opts.Ssl, opts.Host, opts.Dbg)
-	log.Info().Msg(s.String())
+	log.Info(s.String())
 
-	log.Info().Msg("Listening...")
+	log.Info("Listening...")
 	if err := s.ListenAndServe(); err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Error(err.Error())
 	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Index")
+	log.Info("Index")
 
 	a, _, err := httputils.UserIP(r)
-	log.Info().Msgf("user ip: %s", a)
+	log.Info(fmt.Sprintf("user ip: %s", a))
 
 	if err != nil {
-		log.Error().Msgf("err %v", err)
+		log.Error(err.Error())
 		fmt.Fprintln(w, err)
 		return
 	}
@@ -74,28 +76,19 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func search(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Search...")
+	log.Info("Search...")
 
 	a := r.URL.Query().Get("ip")
-	log.Info().Msgf("user ip: %s", a)
+	log.Info(fmt.Sprintf("user ip: %s", a))
 
 	loc, err := db.Search(a)
 	if err != nil {
-		log.Error().Msgf("err %v", err)
+		log.Error(err.Error())
 		fmt.Fprintln(w, err)
 		return
 	}
 
-	log.Debug().Msgf("loc: %v", loc)
-	log.Info().Msg("Search completed")
+	log.Debug(fmt.Sprintf("loc: %v", loc))
+	log.Info("Search completed")
 	fmt.Fprintln(w, loc)
-}
-
-func setupLog(dbg bool) {
-	if dbg {
-		log.Level(zerolog.DebugLevel)
-		return
-	}
-
-	log.Level(zerolog.InfoLevel)
 }
