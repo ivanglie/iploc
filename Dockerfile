@@ -8,4 +8,5 @@ WORKDIR /usr/local/bin/
 RUN apk add --no-cache tzdata
 ENV TZ=Europe/Moscow
 COPY --from=builder /usr/src/iploc/iploc /usr/local/bin/iploc
+COPY --from=builder /usr/src/iploc/web/template /usr/local/bin/web/template
 CMD ["iploc"]
