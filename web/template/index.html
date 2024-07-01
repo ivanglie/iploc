@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iploc - Web service that identifies the location based on an IP address</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+    <style>
+        pre {
+            background-color: #f8f9fa;
+            padding: 1em;
+            border-radius: 0.3em;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <h1 class="mt-5 text-center">iploc</h1>
+        <form id="geoip-form" class="form-inline my-4 justify-content-center" hx-get="/search" hx-target="#result"
+            hx-swap="innerHTML">
+
+            <div class="form-group mx-sm-3 mb-2">
+                <label for="ip" class="sr-only">IP Address</label>
+                <input type="text" id="ip" name="ip" class="form-control" placeholder="Enter IP Address" value="{{.IP}}"
+                    required>
+            </div>
+
+            <button type="submit" class="btn btn-primary mb-2">Find</button>
+        </form>
+
+        <div id="result" class="mt-3"></div>
+
+    </div>
+</body>
+
+</html>

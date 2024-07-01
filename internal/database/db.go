@@ -58,6 +58,7 @@ func NewDB() *DB {
 
 func (db *DB) Init(token, path string) error {
 	log.Info("Download...")
+	// db.zip = "DB11LITEIPV6.zip" // hardcoded for debugging
 	if err := db.downloadFunc(token, path); err != nil {
 		return fmt.Errorf("downloading: %v", err)
 	}
