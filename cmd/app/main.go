@@ -16,9 +16,9 @@ import (
 var (
 	opts struct {
 		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
-		Ssl   bool   `long:"ssl" env:"SSL" description:"use ssl"`
-		Host  string `long:"host" env:"HOST" description:"hostname"`
-		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
+		Ssl   bool   `long:"ssl" env:"SSL" description:"Use ssl"`
+		Host  string `long:"host" env:"HOST" description:"Hostname"`
+		Dbg   bool   `long:"dbg" env:"DEBUG" description:"Use debug"`
 	}
 
 	db      *database.DB
