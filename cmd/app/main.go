@@ -75,7 +75,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := template.ParseFiles("web/template/index.html")
+	t, err := template.ParseFiles("./web/template/index.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
