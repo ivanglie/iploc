@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
+	"text/template"
 
 	"github.com/ivanglie/iploc/pkg/log"
 	"github.com/rs/zerolog"
@@ -16,9 +19,9 @@ import (
 var (
 	opts struct {
 		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
-		Ssl   bool   `long:"ssl" env:"SSL" description:"use ssl"`
-		Host  string `long:"host" env:"HOST" description:"hostname"`
-		Dbg   bool   `long:"dbg" env:"DEBUG" description:"use debug"`
+		Ssl   bool   `long:"ssl" env:"SSL" description:"Use ssl"`
+		Host  string `long:"host" env:"HOST" description:"Hostname"`
+		Dbg   bool   `long:"dbg" env:"DEBUG" description:"Use debug"`
 	}
 
 	db      *database.DB
@@ -72,7 +75,18 @@ func index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/search?ip="+a, http.StatusTemporaryRedirect)
+	t, err := template.ParseFiles("web/template/index.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{"IP": a}
+	if err = t.ExecuteTemplate(w, "index.html", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }
 
 func search(w http.ResponseWriter, r *http.Request) {
@@ -90,5 +104,28 @@ func search(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug(fmt.Sprintf("loc: %v", loc))
 	log.Info("Search completed")
-	fmt.Fprintln(w, loc)
+
+	if acceptHeader := r.Header.Get("Accept"); strings.Contains(acceptHeader, "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(loc)
+
+		return
+	}
+
+	formattedLoc, err := json.MarshalIndent(loc, "", "    ")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	t, err := template.New("result").Parse(`
+            <pre>{{.}}</pre>
+        `)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	t.Execute(w, string(formattedLoc))
 }

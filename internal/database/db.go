@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/zerolog/log"
+	"github.com/ivanglie/iploc/pkg/log"
 )
 
 const (
@@ -57,24 +57,25 @@ func NewDB() *DB {
 }
 
 func (db *DB) Init(token, path string) error {
-	log.Info().Msg("Download...")
+	log.Info("Download...")
+	// db.zip = "DB11LITEIPV6.zip" // hardcoded for debugging
 	if err := db.downloadFunc(token, path); err != nil {
 		return fmt.Errorf("downloading: %v", err)
 	}
-	log.Info().Msg("Download completed")
+	log.Info("Download completed")
 
-	log.Info().Msg("Unzip...")
+	log.Info("Unzip...")
 	if err := db.unzipFunc(); err != nil {
 		return fmt.Errorf("unzipping: %v", err)
 	}
-	log.Info().Msg("Unzip completed")
+	log.Info("Unzip completed")
 
-	log.Info().Msg("Split...")
+	log.Info("Split...")
 	db.BufferSize = db.CSVSize / 200
 	if err := db.splitFunc(); err != nil {
 		return fmt.Errorf("splitting: %v", err)
 	}
-	log.Info().Msg("Split completed")
+	log.Info("Split completed")
 
 	return nil
 }
