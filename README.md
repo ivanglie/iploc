@@ -17,7 +17,7 @@ Web service that identifies the country, region or state, city, latitude and lon
 Search location:
 
 ```code
-curl http://localhost/search?ip=8.8.8.8
+curl http://localhost/search?ip=8.8.8.8 -H "Accept: application/json"
 ```
 
 Output:
@@ -33,7 +33,7 @@ Output:
   "TimeZone": "-08:00"
 }
 ```
-See [requests.rest](./test/requests.rest).
+See [requests.rest](./test/requests.http).
 
 ## Acknowledgment
 
