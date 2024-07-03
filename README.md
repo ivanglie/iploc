@@ -9,15 +9,10 @@ This is a simple IP geolocation service built with Go, HTMX, and Bootstrap. The 
 ## Features
 
   * Lookup geolocation information by IP address (IPv4 or IPv6).
-
   * Reduces CPU and RAM utilization by using a binary search algorithm on smaller chunks of a large raw data file, which has been pre-split
-
   * Auto downloading a database and preparing it for use, using a IP2Location Download Token
-
   * Returns the result as JSON or HTML based on the Accept header in the request
-
   * Simple web interface for entering an IP address and displaying results
-
   * Logging of search operations and results
 
 ## Example
