@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	nethttp "net/http"
 	"os"
 	"strings"
 	"text/template"
@@ -12,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/ivanglie/iploc/internal/database"
-	"github.com/ivanglie/iploc/internal/httputils"
+	"github.com/ivanglie/iploc/internal/http"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -22,6 +23,7 @@ var (
 		Ssl   bool   `long:"ssl" env:"SSL" description:"Use ssl"`
 		Host  string `long:"host" env:"HOST" description:"Hostname"`
 		Dbg   bool   `long:"dbg" env:"DEBUG" description:"Use debug"`
+		Local bool   `long:"local" env:"LOCAL" description:"For local development"`
 	}
 
 	db      *database.DB
@@ -45,16 +47,16 @@ func main() {
 
 	db = database.NewDB()
 	go func() {
-		if err := db.Init(opts.Token, "."); err != nil {
+		if err := db.Init(opts.Local, opts.Token, "."); err != nil {
 			log.Error(err.Error())
 		}
 	}()
 
-	h := http.NewServeMux()
+	h := nethttp.NewServeMux()
 	h.HandleFunc("/", index)
 	h.HandleFunc("/search", search)
 
-	s := httputils.NewServer(h, opts.Ssl, opts.Host, opts.Dbg)
+	s := http.NewServer(h, opts.Ssl, opts.Host, opts.Dbg)
 	log.Info(s.String())
 
 	log.Info("Listening...")
@@ -63,10 +65,10 @@ func main() {
 	}
 }
 
-func index(w http.ResponseWriter, r *http.Request) {
+func index(w nethttp.ResponseWriter, r *nethttp.Request) {
 	log.Info("Index")
 
-	a, _, err := httputils.UserIP(r)
+	a, _, err := http.UserIP(r)
 	log.Info(fmt.Sprintf("user ip: %s", a))
 
 	if err != nil {
@@ -77,19 +79,18 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 	t, err := template.ParseFiles("web/template/index.html")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		nethttp.Error(w, err.Error(), nethttp.StatusInternalServerError)
 		return
 	}
 
 	data := map[string]interface{}{"IP": a}
 	if err = t.ExecuteTemplate(w, "index.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		nethttp.Error(w, err.Error(), nethttp.StatusInternalServerError)
 		return
 	}
-
 }
 
-func search(w http.ResponseWriter, r *http.Request) {
+func search(w nethttp.ResponseWriter, r *nethttp.Request) {
 	log.Info("Search...")
 
 	a := r.URL.Query().Get("ip")
@@ -107,14 +108,14 @@ func search(w http.ResponseWriter, r *http.Request) {
 
 	if acceptHeader := r.Header.Get("Accept"); strings.Contains(acceptHeader, "application/json") {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(loc)
+		fmt.Fprintln(w, loc)
 
 		return
 	}
 
-	formattedLoc, err := json.MarshalIndent(loc, "", "    ")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, []byte(loc.String()), "", "\t"); err != nil {
+		nethttp.Error(w, err.Error(), nethttp.StatusInternalServerError)
 		return
 	}
 
@@ -122,10 +123,10 @@ func search(w http.ResponseWriter, r *http.Request) {
             <pre>{{.}}</pre>
         `)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		nethttp.Error(w, err.Error(), nethttp.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	t.Execute(w, string(formattedLoc))
+	t.Execute(w, prettyJSON.String())
 }
