@@ -49,4 +49,4 @@ jobs:
           echo ${{ secrets.PASSWORD }} | sudo -S docker rm -f iploc-api
           echo ${{ secrets.PASSWORD }} | sudo -S docker rm -f iploc-proxy
 
-          echo ${{ secrets.PASSWORD }} | sudo -S DOMAIN=${{ secrets.HOST }} TOKEN=${{ secrets.TOKEN }} docker compose -f /usr/src/iploc/docker-compose.yml down -v && docker compose -f /usr/src/iploc/docker-compose.yml up -d"
+          echo ${{ secrets.PASSWORD }} | sudo -S DOMAIN=${{ secrets.HOST }} TOKEN=${{ secrets.TOKEN }} docker compose -f /usr/src/iploc/docker-compose.yml down -v && sudo -S DOMAIN=${{ secrets.HOST }} TOKEN=${{ secrets.TOKEN }} docker compose -f /usr/src/iploc/docker-compose.yml up -d"
