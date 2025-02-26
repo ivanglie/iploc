@@ -37,7 +37,7 @@ jobs:
           echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
 
       - name: Copy files to remote host
-        run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete docker-compose.yml .env Caddyfile iploc-api.tar iploc-proxy.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+        run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete docker-compose.yml Caddyfile iploc-api.tar iploc-proxy.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
 
       - name: Load and run Docker containers on remote host
         run: |
