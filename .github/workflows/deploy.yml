@@ -9,33 +9,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Build and pull Docker images
+        run: |
+          sudo docker compose build
+          sudo docker pull caddy:latest
         
+      - name: Save Docker images
+        run: |
+          sudo docker save -o iploc-api.tar ivanglie/iploc-api:latest
+          sudo docker save -o iploc-proxy.tar caddy:latest
+
+          sudo chmod 777 iploc-api.tar
+          sudo chmod 777 iploc-proxy.tar
+
       - name: Setup SSH key
         run: |
           install -m 600 -D /dev/null ~/.ssh/id_rsa
           echo "${{ secrets.KEY }}" > ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.HOST }} > ~/.ssh/known_hosts
 
-      - name: Create directory on remote host
+      - name: Prepare directory on remote host
         run: |
           ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
           echo ${{ secrets.PASSWORD }} | sudo -S rm -r /usr/src/iploc
           echo ${{ secrets.PASSWORD }} | sudo -S mkdir -p /usr/src/iploc
           echo ${{ secrets.PASSWORD }} | sudo -S chmod 777 /usr/src/iploc"
 
-      - name: Build image
-        run: docker compose build
-        
-      - name: Save image
-        run: |
-          sudo docker save -o iploc.tar ivanglie/iploc:latest
-          sudo chmod 777 iploc.tar
-
       - name: Copy files to remote host
-        run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete docker-compose.yml iploc.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
+        run: rsync -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" --archive --compress --delete docker-compose.yml .env Caddyfile iploc-api.tar iploc-proxy.tar ${{ secrets.USER }}@${{ secrets.HOST }}:/usr/src/iploc
 
-      - name: Load and run docker container on remote host
+      - name: Load and run Docker containers on remote host
         run: |
           ssh ${{ secrets.USER }}@${{ secrets.HOST }} "
-          echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc.tar
-          echo ${{ secrets.PASSWORD }} | sudo -S SSL=true HOST=iploc.online TOKEN=${{ secrets.TOKEN }} docker compose -f /usr/src/iploc/docker-compose.yml up -d"
+
+          echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc-api.tar
+          echo ${{ secrets.PASSWORD }} | sudo -S docker load -i /usr/src/iploc/iploc-proxy.tar
+
+          echo ${{ secrets.PASSWORD }} | sudo -S docker rm -f iploc-api
+          echo ${{ secrets.PASSWORD }} | sudo -S docker rm -f iploc-proxy
+
+          echo ${{ secrets.PASSWORD }} | sudo -S DOMAIN=${{ secrets.HOST }} TOKEN=${{ secrets.TOKEN }} docker compose -f /usr/src/iploc/docker-compose.yml down -v && docker compose -f /usr/src/iploc/docker-compose.yml up -d"

@@ -20,8 +20,6 @@ import (
 var (
 	opts struct {
 		Token string `long:"token" env:"TOKEN" description:"IP2Location token"`
-		Ssl   bool   `long:"ssl" env:"SSL" description:"Use ssl"`
-		Host  string `long:"host" env:"HOST" description:"Hostname"`
 		Dbg   bool   `long:"dbg" env:"DEBUG" description:"Use debug"`
 		Local bool   `long:"local" env:"LOCAL" description:"For local development"`
 	}
@@ -56,8 +54,7 @@ func main() {
 	h.HandleFunc("/", index)
 	h.HandleFunc("/search", search)
 
-	s := http.NewServer(h, opts.Ssl, opts.Host, opts.Dbg)
-	log.Info(s.String())
+	s := http.NewServer(":8080", h)
 
 	log.Info("Listening...")
 	if err := s.ListenAndServe(); err != nil {

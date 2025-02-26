@@ -9,3 +9,5 @@
 *certs/
 *certs*.zip
 *.secret
+.env.dev
+.env
