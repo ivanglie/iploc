@@ -1,0 +1,5 @@
+### Search 8.8.8.8
+curl http://localhost:8080/search?ip=8.8.8.8 -H "Accept: application/json"
+
+### Search 2001:4860:4860:0:0:0:0:8888
+curl http://localhost:8080/search?ip=2001:4860:4860:0:0:0:0:8888 -H "Accept: text/html"

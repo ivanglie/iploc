@@ -5,22 +5,18 @@ services:
     image: ivanglie/iploc:latest
     container_name: iploc-api
     restart: always
-    environment:
-      - TOKEN
-      - DOMAIN
+    env_file:
+      - .env.dev
     networks:
       - internal
 
   proxy:
     image: caddy:latest
-    container_name: coinmon-proxy
+    container_name: iploc-proxy
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile
     depends_on:
       - api
     networks:
@@ -29,7 +25,3 @@ services:
 networks:
   internal:
     driver: bridge
-
-volumes:
-  caddy_data:
-  caddy_config:
