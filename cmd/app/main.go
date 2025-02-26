@@ -71,7 +71,6 @@ func index(w nethttp.ResponseWriter, r *nethttp.Request) {
 	if err != nil {
 		log.Error(err.Error())
 		fmt.Fprintln(w, err)
-		return
 	}
 
 	t, err := template.ParseFiles("web/template/index.html")
@@ -97,7 +96,6 @@ func search(w nethttp.ResponseWriter, r *nethttp.Request) {
 	if err != nil {
 		log.Error(err.Error())
 		fmt.Fprintln(w, err)
-		return
 	}
 
 	log.Debug(fmt.Sprintf("loc: %v", loc))
