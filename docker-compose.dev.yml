@@ -2,7 +2,7 @@ services:
   api:
     build:
       context: .
-    image: ivanglie/iploc:latest
+    image: ivanglie/iploc-api:latest
     container_name: iploc-api
     restart: always
     env_file:
