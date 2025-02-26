@@ -13,7 +13,7 @@ services:
 
   proxy:
     image: caddy:latest
-    container_name: coinmon-proxy
+    container_name: iploc-proxy
     ports:
       - "80:80"
       - "443:443"
