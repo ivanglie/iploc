@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/ivanglie/iploc/internal/database"
-	"github.com/ivanglie/iploc/pkg/httputils"
+	"github.com/ivanglie/iploc/pkg/httputil"
 	"github.com/ivanglie/iploc/pkg/log"
 )
 
@@ -52,7 +52,7 @@ func (s *Server) Start(local bool, token, path string) error {
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	log.Info("Index")
 
-	a, _, err := httputils.UserIP(r)
+	a, _, err := httputil.UserIP(r)
 	log.Info(fmt.Sprintf("user ip: %s", a))
 
 	if err != nil {
