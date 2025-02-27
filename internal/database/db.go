@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/ivanglie/iploc/internal/utils"
+	"github.com/ivanglie/iploc/internal/csv"
 	"github.com/ivanglie/iploc/pkg/log"
 )
 
@@ -56,11 +56,11 @@ func (db *DB) Init(local bool, token, path string) (err error) {
 	if local {
 		log.Info("Copy...")
 		db.zip = filepath.Join(path, zipFileName)
-		if err := utils.CopyFile(filepath.Join(zipPath, zipFileName), db.zip); err != nil {
+		if err := csv.Copy(filepath.Join(zipPath, zipFileName), db.zip); err != nil {
 			return fmt.Errorf("copying: %v", err)
 		}
 
-		if db.zipSize, err = utils.FileSize(db.zip); err != nil {
+		if db.zipSize, err = csv.Size(db.zip); err != nil {
 			return err
 		}
 
@@ -79,11 +79,11 @@ func (db *DB) Init(local bool, token, path string) (err error) {
 		return fmt.Errorf("empty db.zip")
 	}
 
-	if db.csv, err = utils.UnzipCSV(db.zip); err != nil {
+	if db.csv, err = csv.Unzip(db.zip); err != nil {
 		return err
 	}
 
-	if db.CSVSize, err = utils.FileSize(db.csv); err != nil {
+	if db.CSVSize, err = csv.Size(db.csv); err != nil {
 		return err
 	}
 	log.Info("Unzip completed")
@@ -94,7 +94,7 @@ func (db *DB) Init(local bool, token, path string) (err error) {
 		k = 2
 	}
 
-	db.chunks, err = utils.SplitCSV(db.csv, db.CSVSize, db.CSVSize/k)
+	db.chunks, err = csv.Split(db.csv, db.CSVSize, db.CSVSize/k)
 	if err != nil {
 		return fmt.Errorf("splitting: %v", err)
 	}
@@ -149,7 +149,7 @@ func (db *DB) download(token, path string) (err error) {
 		return
 	}
 
-	if db.zipSize, err = utils.FileSize(db.zip); err != nil {
+	if db.zipSize, err = csv.Size(db.zip); err != nil {
 		return err
 	}
 

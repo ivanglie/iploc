@@ -1,4 +1,4 @@
-package utils
+package csv
 
 import (
 	"archive/zip"
@@ -12,7 +12,8 @@ import (
 	"strings"
 )
 
-func SplitCSV(filePath string, fileSize, bufferSize int64) ([]string, error) {
+// Split splits the CSV file into chunks.
+func Split(filePath string, fileSize, bufferSize int64) ([]string, error) {
 	chunks := []string{}
 
 	if len(filePath) == 0 {
@@ -68,7 +69,8 @@ func SplitCSV(filePath string, fileSize, bufferSize int64) ([]string, error) {
 	return chunks, nil
 }
 
-func UnzipCSV(filePath string) (string, error) {
+// Unzip extracts the CSV file from the zip archive.
+func Unzip(filePath string) (string, error) {
 	csvFilePath := ""
 
 	if len(filePath) == 0 {
@@ -123,7 +125,8 @@ func UnzipCSV(filePath string) (string, error) {
 	return csvFilePath, nil
 }
 
-func CopyFile(src, dst string) error {
+// Copy copies the file from src to dst.
+func Copy(src, dst string) error {
 	s, err := os.Open(src)
 	if err != nil {
 		return err
@@ -140,7 +143,8 @@ func CopyFile(src, dst string) error {
 	return err
 }
 
-func FileSize(filePath string) (int64, error) {
+// Size returns the size of the file in bytes.
+func Size(filePath string) (int64, error) {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return 0, err
