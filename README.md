@@ -20,7 +20,7 @@ This is a simple IP geolocation service built with Go, HTMX, and Bootstrap. The 
 Search location:
 
 ```code
-curl http://localhost/search?ip=8.8.8.8 -H "Accept: application/json"
+curl http://localhost:8080/search?ip=8.8.8.8 -H "Accept: application/json"
 ```
 
 Output:
@@ -36,7 +36,7 @@ Output:
   "TimeZone": "-08:00"
 }
 ```
-See [requests.http](./test/requests.http).
+See [local.http](./test/local.http).
 
 ## Acknowledgment
 
