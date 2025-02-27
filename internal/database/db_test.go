@@ -54,7 +54,7 @@ func (m *errorClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestDB_Init(t *testing.T) {
-	db := NewDB()
+	db := New()
 	db.downloadFunc = func(url, path string) error { return nil }
 
 	// assert.NoError(t, db.Init(true, "token", "path"))
@@ -81,7 +81,7 @@ func TestDB_Search(t *testing.T) {
 }
 
 func TestDB_download(t *testing.T) {
-	db := NewDB()
+	db := New()
 	db.httpClient = &mockClient{}
 	err := db.download("token", "../../test/data/")
 	assert.NoError(t, err)
@@ -91,18 +91,18 @@ func TestDB_download(t *testing.T) {
 	os.Remove("../../test/data/" + code + ".zip")
 
 	// Bad status error
-	db = NewDB()
+	db = New()
 	db.httpClient = &badStatusClient{}
 	err = db.download("token", "../../test/data/")
 	assert.Equal(t, "error 503 Service Unavailable", err.Error())
 
 	// Empty path error
-	db = NewDB()
+	db = New()
 	err = db.download("token", "")
 	assert.Equal(t, "empty path", err.Error())
 
 	// Something went wrong error
-	db = NewDB()
+	db = New()
 	db.httpClient = &errorClient{}
 	err = db.download("token", "../../test/data/")
 	assert.Equal(t, "something went wrong", err.Error())

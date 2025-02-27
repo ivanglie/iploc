@@ -42,7 +42,7 @@ type DB struct {
 	BufferSize int64
 }
 
-func NewDB() *DB {
+func New() *DB {
 	db := &DB{httpClient: &http.Client{}}
 	db.downloadFunc = db.download
 
