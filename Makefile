@@ -1,6 +1,11 @@
-.PHONY: run tests docker-dev
+include .env.dev
+
+.PHONY: run run-local tests docker-dev
 
 run:
+	go run -race ./cmd/app/ --token=${TOKEN} --dbg
+
+run-local:
 	go run -race ./cmd/app/ --local --dbg
 
 tests:

@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/rs/zerolog v1.29.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.10.0
 )
 
 require (

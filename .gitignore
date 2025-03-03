@@ -2,12 +2,8 @@
 .vscode/
 *tar
 # vendor/
-*debug*
-*prod*
+*.sh
+*.rest
 *IPV6*.csv
-*IPV6*.zip
-*certs/
-*certs*.zip
-*.secret
 .env.dev
 .env
