@@ -1,4 +1,4 @@
-package csv
+package service
 
 import (
 	"archive/zip"
@@ -10,7 +10,62 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/ivanglie/iploc/internal/provider"
+	"github.com/ivanglie/iploc/pkg/log"
 )
+
+func (s *Service) Prepare(local bool, token, path string) (err error) {
+	if local {
+		log.Info("Copy...")
+		s.zip = filepath.Join(path, provider.ZipFileName)
+		if err := Copy(filepath.Join(provider.ZipPath, provider.ZipFileName), s.zip); err != nil {
+			return fmt.Errorf("copying: %v", err)
+		}
+
+		if s.zipSize, err = Size(s.zip); err != nil {
+			return err
+		}
+
+		s.CSVSize = s.zipSize
+		log.Info(fmt.Sprintf("Copying completed %v", s))
+	} else {
+		log.Info("Download...")
+		if err := s.Download(token, path); err != nil {
+			return fmt.Errorf("downloading: %v", err)
+		}
+		log.Info("Download completed")
+	}
+
+	log.Info("Unzip...")
+	if len(s.zip) == 0 {
+		return fmt.Errorf("empty db.zip")
+	}
+
+	if s.csv, err = Unzip(s.zip); err != nil {
+		return err
+	}
+
+	if s.CSVSize, err = Size(s.csv); err != nil {
+		return err
+	}
+	log.Info("Unzip completed")
+
+	log.Info("Split...")
+	k := int64(200)
+	if local {
+		k = 2
+	}
+
+	s.chunks, err = Split(s.csv, s.CSVSize, s.CSVSize/k)
+	if err != nil {
+		return fmt.Errorf("splitting: %v", err)
+	}
+
+	log.Info("Split completed")
+
+	return err
+}
 
 // Split splits the CSV file into chunks.
 func Split(filePath string, fileSize, bufferSize int64) ([]string, error) {

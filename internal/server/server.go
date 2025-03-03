@@ -8,9 +8,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ivanglie/iploc/internal/database"
-	"github.com/ivanglie/iploc/pkg/httputil"
+	"github.com/ivanglie/iploc/internal/service"
 	"github.com/ivanglie/iploc/pkg/log"
+	"github.com/ivanglie/iploc/pkg/netutil"
 )
 
 type httpServer interface {
@@ -18,14 +18,14 @@ type httpServer interface {
 }
 
 type Server struct {
-	db       *database.DB
+	service  *service.Service
 	listener httpServer
 }
 
 // New creates a new Server.
 func New(addr string) *Server {
 	s := &Server{
-		db: database.New(),
+		service: service.New(),
 		listener: &http.Server{
 			Addr: addr,
 		},
@@ -42,7 +42,7 @@ func New(addr string) *Server {
 
 // Start starts the server.
 func (s *Server) Start(local bool, token, path string) error {
-	if err := s.db.Init(local, token, path); err != nil {
+	if err := s.service.Prepare(local, token, path); err != nil {
 		return err
 	}
 
@@ -52,7 +52,7 @@ func (s *Server) Start(local bool, token, path string) error {
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	log.Info("Index")
 
-	a, _, err := httputil.UserIP(r)
+	a, _, err := netutil.UserIP(r)
 	log.Info(fmt.Sprintf("user ip: %s", a))
 
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request) {
 	a := r.URL.Query().Get("ip")
 	log.Info(fmt.Sprintf("user ip: %s", a))
 
-	loc, err := s.db.Search(a)
+	loc, err := s.service.Search(a)
 	if err != nil {
 		log.Error(err.Error())
 		fmt.Fprintln(w, err)

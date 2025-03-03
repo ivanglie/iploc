@@ -1,4 +1,4 @@
-package httputil
+package netutil
 
 import (
 	"net/http/httptest"
